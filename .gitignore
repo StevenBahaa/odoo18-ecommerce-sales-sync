@@ -1,0 +1,43 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# Odoo / local runtime
+*.log
+*.pid
+*.pot~
+*.bak
+*.tmp
+*.swp
+*.swo
+.sessions/
+filestore/
+addons_path.txt
+
+# Local config and secrets
+.env
+.env.*
+*.conf
+!README.md
+
+# Database dumps
+*.dump
+*.sql
+*.backup
+*.zip
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+
+PROJECT_PLAN.md
