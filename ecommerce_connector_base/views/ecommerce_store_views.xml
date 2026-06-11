@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+     <record id="view_ecommerce_store_list" model="ir.ui.view">
+        <field name="name">ecommerce.store.list</field>
+        <field name="model">ecommerce.store</field>
+        <field name="arch" type="xml">
+            <list string="E-commerce Stores" decoration-muted="not active">
+                <field name="name"/>
+                <field name="platform"/>
+                <field name="environment"/>
+                <field name="store_identifier"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="last_webhook_received_at"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ecommerce_store_search" model="ir.ui.view">
+        <field name="name">ecommerce.store.search</field>
+        <field name="model">ecommerce.store</field>
+        <field name="arch" type="xml">
+            <search string="Search E-commerce Stores">
+                <field name="name"/>
+                <field name="platform"/>
+                <field name="environment"/>
+                <field name="store_identifier"/>
+
+                <separator/>
+
+                <filter name="filter_active" string="Active" domain="[('active', '=', True)]"/>
+                <filter name="filter_archived" string="Archived" domain="[('active', '=', False)]"/>
+
+                <separator/>
+
+                <filter name="filter_mock" string="Mock" domain="[('environment', '=', 'mock')]"/>
+                <filter name="filter_demo" string="Demo" domain="[('environment', '=', 'demo')]"/>
+                <filter name="filter_production" string="Production" domain="[('environment', '=', 'production')]"/>
+
+                <group expand="0" string="Group By">
+                    <filter name="group_by_platform" string="Platform" context="{'group_by': 'platform'}"/>
+                    <filter name="group_by_environment" string="Environment" context="{'group_by': 'environment'}"/>
+                    <filter name="group_by_company" string="Company" context="{'group_by': 'company_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_ecommerce_store_form" model="ir.ui.view">
+        <field name="name">ecommerce.store.form</field>
+        <field name="model">ecommerce.store</field>
+        <field name="arch" type="xml">
+            <form string="E-commerce Store">
+                <header>
+                    <button
+                        name="action_regenerate_webhook_token"
+                        string="Regenerate Webhook Token"
+                        type="object"
+                        class="btn-secondary"
+                        groups="ecommerce_connector_base.group_ecommerce_integration_manager"
+                        confirm="This will change the webhook URL. Existing external webhook configurations will stop working until updated. Continue?"
+                    />
+                </header>
+
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+
+                    <group>
+                        <group string="Store">
+                            <field name="name"/>
+                            <field name="active"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="platform"/>
+                            <field name="environment"/>
+                            <field name="store_identifier"/>
+                        </group>
+
+                        <group string="Operational Defaults">
+                            <field name="default_warehouse_id"/>
+                            <field name="default_pricelist_id"/>
+                            <field name="default_sales_team_id"/>
+                            <field name="shipping_product_id"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Webhook">
+                            <group>
+                                <group string="Webhook URL">
+                                    <field name="webhook_url"/>
+                                    <field
+                                        name="webhook_token"
+                                        readonly="1"
+                                        password="True"
+                                        groups="ecommerce_connector_base.group_ecommerce_integration_manager"
+                                    />
+                                    <field
+                                        name="webhook_secret"
+                                        password="True"
+                                        groups="ecommerce_connector_base.group_ecommerce_integration_manager"
+                                    />
+                                </group>
+
+                                <group string="Webhook Status">
+                                    <field name="last_webhook_received_at" readonly="1"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page string="Policies">
+                            <group>
+                                <group string="Import">
+                                    <field name="order_import_policy"/>
+                                    <field name="discount_strategy"/>
+                                    <field name="stock_sync_policy"/>
+                                </group>
+
+                                <group string="Accounting">
+                                    <field name="default_journal_id"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page string="Credentials" groups="ecommerce_connector_base.group_ecommerce_integration_manager">
+                            <group>
+                                <group string="API Credentials">
+                                    <field name="client_id" password="True"/>
+                                    <field name="client_secret" password="True"/>
+                                    <field name="access_token" password="True"/>
+                                    <field name="refresh_token" password="True"/>
+                                </group>
+
+                                <group string="Token Expiry">
+                                    <field name="access_token_expires_at"/>
+                                    <field name="refresh_token_issued_at"/>
+                                    <field name="refresh_token_expires_at"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page string="Integration Safety" groups="ecommerce_connector_base.group_ecommerce_integration_manager">
+                            <group>
+                                <group string="Integration User">
+                                    <field name="integration_user_id"/>
+                                </group>
+
+                                <group string="Rate Limit">
+                                    <field name="rate_limit_window_seconds"/>
+                                    <field name="rate_limit_max_events"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page string="Token Refresh" groups="ecommerce_connector_base.group_ecommerce_integration_manager">
+                            <group>
+                                <field name="token_refresh_lock" readonly="1"/>
+                                <field name="token_refresh_in_progress_at"/>
+                                <field name="last_token_refresh_at"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ecommerce_store" model="ir.actions.act_window">
+        <field name="name">Stores</field>
+        <field name="res_model">ecommerce.store</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_ecommerce_store_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first e-commerce store.
+            </p>
+            <p>
+                Start with Mock Mode to demonstrate the connector without live external credentials.
+            </p>
+        </field>
+    </record>
+</odoo>

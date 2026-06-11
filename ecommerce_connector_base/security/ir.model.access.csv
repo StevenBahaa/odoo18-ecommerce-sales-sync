@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_ecommerce_store_user,ecommerce.store.user,model_ecommerce_store,ecommerce_connector_base.group_ecommerce_connector_user,1,0,0,0
+access_ecommerce_store_manager,ecommerce.store.manager,model_ecommerce_store,ecommerce_connector_base.group_ecommerce_connector_manager,1,1,0,0
+access_ecommerce_store_integration_manager,ecommerce.store.integration.manager,model_ecommerce_store,ecommerce_connector_base.group_ecommerce_integration_manager,1,1,1,1

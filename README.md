@@ -78,6 +78,27 @@ Odoo port:
 8070
 ```
 
+```text
+## Integration User Setup
+
+The connector is designed to avoid broad uncontrolled sudo usage during webhook business processing.
+
+For real processing, create a dedicated Odoo technical user, for example:
+
+E-commerce Integration Bot
+
+Recommended access:
+
+- Sales access needed to create quotations/sale orders later.
+- Inventory read access for stock-readiness checks later.
+- Contact access needed to match or create customers later.
+- E-commerce Connector Manager access.
+- E-commerce Integration Manager access only if the user is also responsible for connector configuration.
+
+The integration user should not be the main Administrator user.
+
+If no integration user is configured on the store, future webhook handling may only store the raw webhook event with minimal controlled elevation. It must not create partners, products, external orders, or sale orders using broad unrestricted superuser access.
+
 ## Development Roadmap
 
 Current milestone:
