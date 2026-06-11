@@ -16,6 +16,7 @@
         "security/ir.model.access.csv",
         "data/ecommerce_sequence.xml",
         "views/ecommerce_store_views.xml",
+        "views/ecommerce_webhook_event_views.xml",
         "views/ecommerce_menu.xml",
     ],
     "installable": True,
