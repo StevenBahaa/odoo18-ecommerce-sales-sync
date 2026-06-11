@@ -1,1 +1,3 @@
-﻿# Salla models will be added in UC-02 and later use cases.
+﻿from . import ecommerce_store
+from . import salla_client
+from . import salla_mapper

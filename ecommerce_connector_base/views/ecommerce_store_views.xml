@@ -154,8 +154,8 @@
                         <page string="Token Refresh" groups="ecommerce_connector_base.group_ecommerce_integration_manager">
                             <group>
                                 <field name="token_refresh_lock" readonly="1"/>
-                                <field name="token_refresh_in_progress_at"/>
-                                <field name="last_token_refresh_at"/>
+                                <field name="token_refresh_in_progress_at" readonly="1"/>
+                                <field name="last_token_refresh_at" readonly="1"/>
                             </group>
                         </page>
                     </notebook>
