@@ -6,7 +6,9 @@
     "depends": [
         "ecommerce_connector_base",
     ],
-    "data": [],
+    "data": [
+        "views/salla_store_views.xml",
+    ],
     "installable": True,
     "application": False,
     "license": "LGPL-3",

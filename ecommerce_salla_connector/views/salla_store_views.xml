@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_ecommerce_store_form_salla" model="ir.ui.view">
+        <field name="name">ecommerce.store.form.salla</field>
+        <field name="model">ecommerce.store</field>
+        <field name="inherit_id" ref="ecommerce_connector_base.view_ecommerce_store_form"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//notebook" position="inside">
+                <page string="Salla" invisible="platform != 'salla'">
+                    <group>
+                        <group string="Salla Quick Reference">
+                            <field name="store_identifier" readonly="1"/>
+                            <field name="webhook_url" readonly="1"/>
+                        </group>
+
+                        <group string="Token Status" groups="ecommerce_connector_base.group_ecommerce_integration_manager">
+                            <field name="access_token_expires_at" readonly="1"/>
+                            <field name="refresh_token_expires_at" readonly="1"/>
+                            <field name="last_token_refresh_at" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <div class="alert alert-info" role="alert">
+                        Salla credentials, webhook secret, token values, rate limits, and integration user settings are managed from the main configuration tabs.
+                    </div>
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+    <record id="view_ecommerce_store_search_salla" model="ir.ui.view">
+        <field name="name">ecommerce.store.search.salla</field>
+        <field name="model">ecommerce.store</field>
+        <field name="inherit_id" ref="ecommerce_connector_base.view_ecommerce_store_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='filter_mock']" position="before">
+                <filter name="filter_platform_salla" string="Salla" domain="[('platform', '=', 'salla')]"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
