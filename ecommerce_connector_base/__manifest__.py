@@ -17,6 +17,8 @@
         "data/ecommerce_sequence.xml",
         "views/ecommerce_store_views.xml",
         "views/ecommerce_webhook_event_views.xml",
+        "views/ecommerce_external_order_views.xml",
+        "views/ecommerce_external_order_line_views.xml",
         "views/ecommerce_menu.xml",
     ],
     "installable": True,
