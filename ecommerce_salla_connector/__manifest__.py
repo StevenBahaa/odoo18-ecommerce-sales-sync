@@ -6,7 +6,11 @@
     "depends": [
         "ecommerce_connector_base",
     ],
-    "data": [],
+    "data": [
+        "security/ir.model.access.csv",
+        "views/salla_store_views.xml",
+        "views/ecommerce_mock_payload_wizard_views.xml",
+    ],
     "installable": True,
     "application": False,
     "license": "LGPL-3",

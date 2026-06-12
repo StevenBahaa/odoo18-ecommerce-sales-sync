@@ -1,0 +1,182 @@
+import json
+
+
+from odoo import models, fields ,api,_
+
+class EcommerceWebhookEvent(models.Model):  
+    _name = 'ecommerce.webhook.event'
+    _description = 'E-commerce Webhook Event'
+    _order = 'create_date desc , id desc'
+    _check_company_auto = True
+
+    name = fields.Char(
+        string="Event Reference",
+        readonly=True,
+        copy=False,
+        index=True,
+        default="New",
+    )
+
+    store_id = fields.Many2one(
+        "ecommerce.store",
+        string="Store",
+        required=True,
+        readonly=True,
+        index=True,
+        ondelete="restrict",
+        check_company=True
+    )
+
+    company_id = fields.Many2one(
+        'res.company',
+        string='Company', 
+        required=True, 
+        readonly=True,
+        index=True,
+        default=lambda self: self.env.company.id, 
+    )
+
+    platform =fields.Selection(
+        related="store_id.platform",
+        string="Platform",
+        store=True,
+        readonly=True,
+        index=True,
+    )
+
+    event_type = fields.Char(
+        string="Event Type",
+        readonly=True,
+        index=True,
+    )
+    
+    external_event_id = fields.Char(
+        string="External Event ID",
+        readonly=True,
+        index=True,
+    )
+    
+    external_order_id = fields.Char(
+        string="External Order ID",
+        readonly=True,
+        index=True,
+    )
+
+    raw_payload = fields.Text(
+        string="Raw Payload",
+        readonly=True,
+    )
+
+    headers_json = fields.Text(
+        string="Request Headers (JSON)",
+        readonly=True,
+    )
+
+    signature_valid = fields.Boolean(
+        string="Signature Valid",
+        readonly=True,
+    )
+
+    processing_status = fields.Selection(
+        selection=[
+            ("received", "Received"),
+            ("processing", "Processing"),
+            ("processed", "Processed"),
+            ("failed", "Failed"),
+            ("ignored", "Ignored"),
+            ("duplicate", "Duplicate"),
+            ("invalid_signature", "Invalid Signature"),
+            ("rate_limited", "Rate Limited"),
+            ("pending_review", "Pending Review"),
+        ],
+        string="Processing Status",
+        default="received",
+        readonly=True,
+        index=True,
+        required=True,
+    )
+
+    error_message = fields.Text(
+        string="Error Message",
+        readonly=True,
+    )
+
+    processed_at = fields.Datetime(
+        string="Processed At",
+        readonly=True,
+    )
+
+    http_status_returned = fields.Integer(
+        string="HTTP Status Returned",
+        readonly=True,
+    )
+
+    related_sale_order_id = fields.Many2one(
+        "sale.order",
+        string="Related Sale Order",
+        readonly=True,
+        index=True,
+        check_company=True,
+    )
+
+    related_partner_id = fields.Many2one(
+        "res.partner",
+        string="Related Partner",
+        readonly=True,
+        index=True,
+        check_company=True,
+    )
+
+    related_product_id = fields.Many2one(
+        "product.product",
+        string="Related Product",
+        readonly=True,
+        index=True,
+        check_company=True,
+    )
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            vals.setdefault("name", "New")
+
+        records = super().create(vals_list)
+
+        for record in records:
+            if record.name in ("New", "/"):
+                record.name = "WH-%05d" % record.id
+
+        return records
+
+    def action_mark_received(self):
+        allowed = self.filtered(
+            lambda e: e.processing_status in ("failed", "pending_review")
+        )
+        allowed.sudo().write({
+            "processing_status": "received",
+            "error_message": False,
+            "processed_at": False,
+        })
+        return True
+
+    def _apply_uc03_processing_gate(self):
+        now = fields.Datetime.now()
+        for event in self:
+            store = event.store_id
+
+            if not store.integration_user_id:
+                event.sudo().write({
+                    "processing_status": "pending_review",
+                    "error_message": _(
+                        "Integration user is not configured. Raw webhook event "
+                        "was stored, but business processing was skipped."
+                    ),
+                    "processed_at": now,
+                })
+                continue
+
+            event.sudo().write({
+                "processing_status": "processed",
+                "error_message": False,
+                "processed_at": now,
+            })

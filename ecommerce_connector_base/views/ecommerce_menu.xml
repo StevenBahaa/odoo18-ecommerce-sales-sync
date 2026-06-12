@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem
+        id="menu_ecommerce_connector_root"
+        name="E-commerce Connector"
+        sequence="35"
+        groups="ecommerce_connector_base.group_ecommerce_connector_user"
+    />
+
+    <menuitem
+        id="menu_ecommerce_connector_operations"
+        name="Operations"
+        parent="menu_ecommerce_connector_root"
+        sequence="10"
+        groups="ecommerce_connector_base.group_ecommerce_connector_user"
+    />
+
+    <menuitem
+        id="menu_ecommerce_webhook_event"
+        name="Webhook Events"
+        parent="menu_ecommerce_connector_operations"
+        action="action_ecommerce_webhook_event"
+        sequence="10"
+        groups="ecommerce_connector_base.group_ecommerce_connector_user"
+    />
+
+    <menuitem
+        id="menu_ecommerce_connector_configuration"
+        name="Configuration"
+        parent="menu_ecommerce_connector_root"
+        sequence="90"
+        groups="ecommerce_connector_base.group_ecommerce_connector_user"
+    />
+
+    <menuitem
+        id="menu_ecommerce_store"
+        name="Stores"
+        parent="menu_ecommerce_connector_configuration"
+        action="action_ecommerce_store"
+        sequence="10"
+        groups="ecommerce_connector_base.group_ecommerce_connector_user"
+    />
+
+</odoo>
