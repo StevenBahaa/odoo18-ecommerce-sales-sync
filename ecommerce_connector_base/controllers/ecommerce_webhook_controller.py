@@ -61,22 +61,8 @@ class EcommerceWebhookController(http.Controller):
 
         raw_body = request.httprequest.get_data() or b""
 
-
+        signature_valid = True
         if store.environment != "mock":
-            if not self._verify_signature(store, raw_body):
-                self._log_invalid_signature_event(store, raw_body)
-                return request.make_json_response(
-                    {"status": "invalid_signature"},
-                    status=401,
-                )
-
-        payload_dict, parsed_payload = self._parse_payload(raw_body)
-
-        signature_valid = False
-
-        if store.environment == "mock":
-            signature_valid = True
-        else:
             signature_valid = self._verify_signature(store, raw_body)
             if not signature_valid:
                 self._log_invalid_signature_event(store, raw_body)
@@ -84,7 +70,8 @@ class EcommerceWebhookController(http.Controller):
                     {"status": "invalid_signature"},
                     status=401,
                 )
-        
+
+        payload_dict, parsed_payload = self._parse_payload(raw_body)
 
         try:
             event = self._create_raw_event(

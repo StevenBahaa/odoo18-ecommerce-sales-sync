@@ -1,0 +1,19 @@
+{
+  "event": "app.store.authorize",
+  "id": "mock-event-authorize-001",
+  "created_at": "2026-06-11T09:05:00Z",
+  "merchant": {
+    "id": "mock-merchant-001",
+    "name": "Mock Salla Store"
+  },
+  "data": {
+    "store_id": "mock-store-001",
+    "store_identifier": "mock-store-001",
+    "access_token": "mock-access-token-not-real",
+    "refresh_token": "mock-refresh-token-not-real",
+    "expires_in": 86400,
+    "refresh_token_expires_in": 2592000,
+    "scope": "orders.read offline_access",
+    "token_type": "Bearer"
+  }
+}

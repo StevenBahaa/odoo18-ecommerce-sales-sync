@@ -173,7 +173,8 @@ class EcommerceWebhookEvent(models.Model):
                     ),
                     "processed_at": now,
                 })
-            
+                continue
+
             event.sudo().write({
                 "processing_status": "processed",
                 "error_message": False,

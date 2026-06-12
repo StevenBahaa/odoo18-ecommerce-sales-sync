@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_ecommerce_mock_payload_wizard_form" model="ir.ui.view">
+        <field name="name">ecommerce.mock.payload.wizard.form</field>
+        <field name="model">ecommerce.mock.payload.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Mock Payload Lab">
+                <group>
+                    <group string="Store">
+                        <field name="store_id"/>
+                        <field name="payload_template"/>
+                        <field name="created_event_id" readonly="1"/>
+                    </group>
+                </group>
+
+                <notebook>
+                    <page string="Payload JSON">
+                        <field name="payload_json" nolabel="1"/>
+                    </page>
+                </notebook>
+
+                <footer>
+                    <button
+                        name="action_load_sample_payload"
+                        string="Reload Sample"
+                        type="object"
+                        class="btn-secondary"
+                        invisible="payload_template == 'custom_json'"
+                    />
+                    <button
+                        name="action_create_webhook_event"
+                        string="Create Webhook Event"
+                        type="object"
+                        class="btn-primary"
+                    />
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ecommerce_mock_payload_lab" model="ir.actions.act_window">
+        <field name="name">Mock Payload Lab</field>
+        <field name="res_model">ecommerce.mock.payload.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="groups_id" eval="[(4, ref('ecommerce_connector_base.group_ecommerce_connector_manager'))]"/>
+    </record>
+
+    <menuitem
+        id="menu_ecommerce_mock_payload_lab"
+        name="Mock Payload Lab"
+        parent="ecommerce_connector_base.menu_ecommerce_connector_operations"
+        action="action_ecommerce_mock_payload_lab"
+        sequence="20"
+        groups="ecommerce_connector_base.group_ecommerce_connector_manager"
+    />
+
+</odoo>
