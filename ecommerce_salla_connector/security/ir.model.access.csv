@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_ecommerce_mock_payload_wizard_manager,ecommerce.mock.payload.wizard.manager,model_ecommerce_mock_payload_wizard,ecommerce_connector_base.group_ecommerce_connector_manager,1,1,1,1
