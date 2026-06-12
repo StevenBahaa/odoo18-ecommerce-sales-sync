@@ -17,6 +17,24 @@
     />
 
     <menuitem
+        id="menu_ecommerce_external_order"
+        name="External Orders"
+        parent="menu_ecommerce_connector_operations"
+        action="action_ecommerce_external_order"
+        sequence="5"
+        groups="ecommerce_connector_base.group_ecommerce_connector_user"
+    />
+
+    <menuitem
+        id="menu_ecommerce_external_order_line"
+        name="External Order Lines"
+        parent="menu_ecommerce_connector_operations"
+        action="action_ecommerce_external_order_line"
+        sequence="7"
+        groups="ecommerce_connector_base.group_ecommerce_connector_manager"
+    />
+
+    <menuitem
         id="menu_ecommerce_webhook_event"
         name="Webhook Events"
         parent="menu_ecommerce_connector_operations"
