@@ -1,0 +1,56 @@
+{
+  "event": "order.updated",
+  "id": "mock-event-order-updated-001",
+  "created_at": "2026-06-11T09:10:00Z",
+  "merchant": {
+    "id": "mock-merchant-001",
+    "name": "Mock Salla Store"
+  },
+  "data": {
+    "id": "SALLA-ORDER-UNKNOWN-UPDATE",
+    "order_id": "SALLA-ORDER-UNKNOWN-UPDATE",
+    "reference_id": "REF-UNKNOWN-UPDATE",
+    "status": "updated",
+    "payment_status": "paid",
+    "fulfillment_status": "processing",
+    "currency": "SAR",
+    "customer": {
+      "id": "CUST-UPDATE-001",
+      "name": "Unknown Update Customer",
+      "email": "unknown.update@example.com",
+      "mobile": "+966500000099"
+    },
+    "amounts": {
+      "total": {
+        "amount": 300.0,
+        "currency": "SAR"
+      },
+      "shipping_cost": {
+        "amount": 25.0,
+        "currency": "SAR"
+      },
+      "discounts": {
+        "amount": 0.0,
+        "currency": "SAR"
+      },
+      "tax": {
+        "amount": 15.0,
+        "currency": "SAR"
+      }
+    },
+    "items": [
+      {
+        "id": "LINE-UPD-001",
+        "product_id": "EXT-PROD-UPD-001",
+        "variant_id": "",
+        "sku": "MOCK-SKU-UPD-001",
+        "name": "Mock Updated Product",
+        "quantity": 1,
+        "price": {
+          "amount": 300.0,
+          "currency": "SAR"
+        }
+      }
+    ]
+  }
+}
