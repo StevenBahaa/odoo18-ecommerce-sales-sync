@@ -19,6 +19,7 @@
                 <field name="event_type"/>
                 <field name="external_event_id"/>
                 <field name="external_order_id"/>
+                <field name="related_external_order_id"/>
                 <field name="signature_valid"/>
                 <field name="processing_status"/>
                 <field name="http_status_returned"/>
@@ -69,6 +70,7 @@
                     </group>
 
                     <group string="Related Records">
+                        <field name="related_external_order_id"/>
                         <field name="related_sale_order_id"/>
                         <field name="related_partner_id"/>
                         <field name="related_product_id"/>
