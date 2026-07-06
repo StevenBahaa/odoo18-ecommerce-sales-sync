@@ -234,3 +234,136 @@ class EcommerceExternalOrder(models.Model):
             "last_processed_at": fields.Datetime.now(),
         })
         return True
+
+    def _match_or_create_customer(self):
+        self.ensure_one()
+        from psycopg2 import IntegrityError
+        from ..utils.phone_utils import normalize_phone_digits
+
+        ext_cust_id = (self.external_customer_id or "").strip() or False
+        email = (self.customer_email or "").strip().lower() or False
+        normalized_phone = normalize_phone_digits(self.customer_phone)
+        
+        self.normalized_customer_phone = normalized_phone
+
+        Mapping = self.env['ecommerce.customer.mapping']
+        Partner = self.env['res.partner']
+
+        partner_id = False
+        warning = False
+        
+        # A. Mapping lookup
+        if ext_cust_id:
+            mapping = Mapping.search([
+                ('store_id', '=', self.store_id.id),
+                ('external_customer_id', '=', ext_cust_id)
+            ], limit=1)
+            if mapping:
+                partner_id = mapping.partner_id
+        
+        # B. Email lookup
+        if not partner_id and email:
+            if 'email_normalized' in Partner._fields:
+                partners_by_email = Partner.search([('email_normalized', '=', email)])
+            else:
+                partners_by_email = Partner.search([('email', '=ilike', email)])
+                
+            if len(partners_by_email) == 1:
+                partner_id = partners_by_email[0]
+            elif len(partners_by_email) > 1:
+                warning = f"Ambiguous email match: {len(partners_by_email)} partners found for {email}."
+
+        # C. Phone lookup
+        if not partner_id and not warning and normalized_phone:
+            domain = [
+                '|',
+                ('ecommerce_normalized_mobile', '=', normalized_phone),
+                ('ecommerce_normalized_phone', '=', normalized_phone),
+            ]
+            partners_by_phone = Partner.search(domain)
+            if len(partners_by_phone) == 1:
+                partner_id = partners_by_phone[0]
+            elif len(partners_by_phone) > 1:
+                warning = f"Ambiguous phone match: {len(partners_by_phone)} partners found for {normalized_phone}."
+
+        # Handle Ambiguity
+        if warning:
+            self.write({
+                'warning_message': warning,
+                'state': 'pending_review',
+                'last_processed_at': fields.Datetime.now()
+            })
+            return False
+
+        # E. Create Partner
+        if not partner_id:
+            partner_name = (self.customer_name or "").strip() or "Unknown Customer"
+            partner_vals = {
+                'name': partner_name,
+                'email': self.customer_email or False,
+                'mobile': self.customer_phone or False,
+                'company_id': self.company_id.id,
+            }
+
+            if ext_cust_id:
+                try:
+                    with self.env.cr.savepoint():
+                        partner_id = Partner.create(partner_vals)
+                        Mapping.create({
+                            'store_id': self.store_id.id,
+                            'company_id': self.company_id.id,
+                            'external_customer_id': ext_cust_id,
+                            'partner_id': partner_id.id,
+                            'external_email': self.customer_email or False,
+                            'external_phone': self.customer_phone or False,
+                            'normalized_phone': normalized_phone,
+                            'last_order_at': self.order_date or fields.Datetime.now(),
+                        })
+                except IntegrityError:
+                    mapping = Mapping.search([
+                        ('store_id', '=', self.store_id.id),
+                        ('external_customer_id', '=', ext_cust_id)
+                    ], limit=1)
+                    if mapping:
+                        partner_id = mapping.partner_id
+                    else:
+                        raise
+            else:
+                partner_id = Partner.create(partner_vals)
+        else:
+            # F. Mapping upsert for existing partner
+            if ext_cust_id:
+                mapping = Mapping.search([
+                    ('store_id', '=', self.store_id.id),
+                    ('external_customer_id', '=', ext_cust_id)
+                ], limit=1)
+                
+                order_date = self.order_date or fields.Datetime.now()
+                
+                if mapping:
+                    if not mapping.last_order_at or mapping.last_order_at < order_date:
+                        mapping.write({
+                            'external_email': self.customer_email or mapping.external_email,
+                            'external_phone': self.customer_phone or mapping.external_phone,
+                            'normalized_phone': normalized_phone or mapping.normalized_phone,
+                            'last_order_at': order_date,
+                        })
+                else:
+                    try:
+                        with self.env.cr.savepoint():
+                            Mapping.create({
+                                'store_id': self.store_id.id,
+                                'company_id': self.company_id.id,
+                                'external_customer_id': ext_cust_id,
+                                'partner_id': partner_id.id,
+                                'external_email': self.customer_email or False,
+                                'external_phone': self.customer_phone or False,
+                                'normalized_phone': normalized_phone,
+                                'last_order_at': order_date,
+                            })
+                    except IntegrityError:
+                        pass
+            
+        # G. Link records
+        self.partner_id = partner_id.id
+        return partner_id
