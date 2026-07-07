@@ -25,3 +25,9 @@ Verify that exactly one res.partner is reused and the mapping is reused.
 ### TC-7 — Existing UC-06 duplicate behavior
 Replay the exact same payload with the same external_order_id.
 Verify a new webhook event becomes `duplicate`, links to the existing external order, and creates neither a new external order nor a new partner.
+
+### TC-8 — Company Scope
+Create/import a new external customer through a Store belonging to Company A.
+Verify the created partner has company_id = Company A and is correctly linked to the Company A external order.
+Do not change cross-company customer reuse policy in UC-07.
+

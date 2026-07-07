@@ -1,4 +1,7 @@
+from psycopg2 import IntegrityError
 from odoo import models, fields ,api,_
+from ..utils.phone_utils import normalize_phone_digits
+
 
 class EcommerceExternalOrder(models.Model):
     _name = 'ecommerce.external.order'
@@ -237,18 +240,15 @@ class EcommerceExternalOrder(models.Model):
 
     def _match_or_create_customer(self):
         self.ensure_one()
-        from psycopg2 import IntegrityError
-        from ..utils.phone_utils import normalize_phone_digits
 
         ext_cust_id = (self.external_customer_id or "").strip() or False
         email = (self.customer_email or "").strip().lower() or False
         normalized_phone = normalize_phone_digits(self.customer_phone)
-        
-        self.normalized_customer_phone = normalized_phone
 
         Mapping = self.env['ecommerce.customer.mapping']
         Partner = self.env['res.partner']
 
+        mapping = Mapping
         partner_id = False
         warning = False
         
@@ -291,7 +291,8 @@ class EcommerceExternalOrder(models.Model):
             self.write({
                 'warning_message': warning,
                 'state': 'pending_review',
-                'last_processed_at': fields.Datetime.now()
+                'last_processed_at': fields.Datetime.now(),
+                'normalized_customer_phone': normalized_phone,
             })
             return False
 
@@ -302,6 +303,7 @@ class EcommerceExternalOrder(models.Model):
                 'name': partner_name,
                 'email': self.customer_email or False,
                 'mobile': self.customer_phone or False,
+                # Scope connector-created customers to the external order company; this is not the partner parent/company-contact relation.
                 'company_id': self.company_id.id,
             }
 
@@ -309,7 +311,7 @@ class EcommerceExternalOrder(models.Model):
                 try:
                     with self.env.cr.savepoint():
                         partner_id = Partner.create(partner_vals)
-                        Mapping.create({
+                        mapping = Mapping.create({
                             'store_id': self.store_id.id,
                             'company_id': self.company_id.id,
                             'external_customer_id': ext_cust_id,
@@ -333,11 +335,6 @@ class EcommerceExternalOrder(models.Model):
         else:
             # F. Mapping upsert for existing partner
             if ext_cust_id:
-                mapping = Mapping.search([
-                    ('store_id', '=', self.store_id.id),
-                    ('external_customer_id', '=', ext_cust_id)
-                ], limit=1)
-                
                 order_date = self.order_date or fields.Datetime.now()
                 
                 if mapping:
@@ -351,7 +348,7 @@ class EcommerceExternalOrder(models.Model):
                 else:
                     try:
                         with self.env.cr.savepoint():
-                            Mapping.create({
+                            mapping = Mapping.create({
                                 'store_id': self.store_id.id,
                                 'company_id': self.company_id.id,
                                 'external_customer_id': ext_cust_id,
@@ -362,8 +359,29 @@ class EcommerceExternalOrder(models.Model):
                                 'last_order_at': order_date,
                             })
                     except IntegrityError:
-                        pass
+                        mapping = Mapping.search([
+                            ('store_id', '=', self.store_id.id),
+                            ('external_customer_id', '=', ext_cust_id),
+                        ], limit=1)
+
+                        if mapping:
+                            partner_id = mapping.partner_id
+                        else:
+                            raise
             
+        # Defensive partner guard
+        if not partner_id or not partner_id.exists():
+            self.write({
+                'warning_message': "Matched/created partner record is missing or invalid.",
+                'state': 'captured',
+                'last_processed_at': fields.Datetime.now(),
+                'normalized_customer_phone': normalized_phone,
+            })
+            return False
+
         # G. Link records
-        self.partner_id = partner_id.id
-        return partner_id
+        self.write({
+            'partner_id': partner_id.id,
+            'normalized_customer_phone': normalized_phone,
+        })
+        return partner_id
