@@ -1,0 +1,55 @@
+{
+  "event": "order.created",
+  "id": "mock-event-order-created-002",
+  "created_at": "2026-06-12T09:00:00Z",
+  "merchant": {
+    "id": "mock-merchant-001",
+    "name": "Mock Salla Store"
+  },
+  "data": {
+    "id": "SALLA-ORDER-1002",
+    "order_id": "SALLA-ORDER-1002",
+    "reference_id": "REF-1002",
+    "status": "created",
+    "payment_status": "paid",
+    "currency": "SAR",
+    "customer": {
+      "id": "CUST-001",
+      "name": "Ahmed Mock Customer",
+      "email": "ahmed.customer@example.com",
+      "mobile": "+966500000001"
+    },
+    "amounts": {
+      "total": {
+        "amount": 100.0,
+        "currency": "SAR"
+      },
+      "shipping_cost": {
+        "amount": 25.0,
+        "currency": "SAR"
+      },
+      "discounts": {
+        "amount": 0.0,
+        "currency": "SAR"
+      },
+      "tax": {
+        "amount": 15.0,
+        "currency": "SAR"
+      }
+    },
+    "items": [
+      {
+        "id": "LINE-003",
+        "product_id": "EXT-PROD-001",
+        "variant_id": "EXT-VAR-001",
+        "sku": "MOCK-SKU-001",
+        "name": "Mock Product One",
+        "quantity": 1,
+        "price": {
+          "amount": 100.0,
+          "currency": "SAR"
+        }
+      }
+    ]
+  }
+}

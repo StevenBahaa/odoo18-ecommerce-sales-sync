@@ -60,4 +60,13 @@
         groups="ecommerce_connector_base.group_ecommerce_connector_user"
     />
 
+    <menuitem
+        id="menu_ecommerce_customer_mapping"
+        name="Customer Mappings"
+        parent="menu_ecommerce_connector_configuration"
+        action="action_ecommerce_customer_mapping"
+        sequence="20"
+        groups="ecommerce_connector_base.group_ecommerce_connector_user"
+    />
+
 </odoo>
