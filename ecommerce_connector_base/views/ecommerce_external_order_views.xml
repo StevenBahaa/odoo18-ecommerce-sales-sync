@@ -102,7 +102,16 @@
                     <group>
                         <group string="Commercial Values">
                             <field name="currency_id"/>
-                            <field name="currency_mismatch" widget="badge" decoration-warning="currency_mismatch == True" invisible="not currency_mismatch"/>
+                            <field name="currency_mismatch" invisible="1"/>
+                            <div
+                                class="alert alert-warning"
+                                role="alert"
+                                style="margin: 4px 0 8px 0; padding: 6px 10px;"
+                                colspan="2"
+                                invisible="not currency_mismatch"
+                            >
+                                ⚠ <strong>Currency Mismatch:</strong> Order currency differs from company currency. Verify pricing before importing.
+                            </div>
                             <field name="total_amount"/>
                             <field name="shipping_amount"/>
                             <field name="shipping_product_id"/>
