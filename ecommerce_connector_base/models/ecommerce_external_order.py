@@ -228,7 +228,7 @@ class EcommerceExternalOrder(models.Model):
 
     def action_reset_to_draft(self):
         allowed = self.filtered(
-            lambda order: order.state in ("failed", "pending_review", "pending_mapping")
+            lambda order: order.state in ("failed", "pending_review", "pending_mapping", "ready")
         )
         allowed.write({
             "state": "draft",
@@ -503,5 +503,81 @@ class EcommerceExternalOrder(models.Model):
             if not all_mapped:
                 self.write({'state': 'pending_mapping'})
             else:
-                if self.state in ('draft', 'pending_mapping'):
-                    self.write({'state': 'captured'})
+                self.action_validate()
+
+    def action_validate(self):
+        self.ensure_one()
+
+        # Step 1 — Explicit sale_order_id link check
+        if self.sale_order_id:
+            self.write({
+                'state': 'imported',
+                'warning_message': f"This order is already linked to sale order {self.sale_order_id.name}. Re-import blocked.",
+                'last_processed_at': fields.Datetime.now()
+            })
+            return
+
+        # Step 2 — Database duplicate check on sale.order
+        # Note: Fields ecommerce_store_id and ecommerce_external_reference are added
+        # to sale.order in UC-11. We guard with a field existence check to avoid
+        # crashing before UC-11 is installed.
+        SaleOrder = self.env['sale.order']
+        so_fields = SaleOrder._fields
+        if 'ecommerce_store_id' in so_fields and 'ecommerce_external_reference' in so_fields:
+            duplicate = SaleOrder.search([
+                ('ecommerce_store_id', '=', self.store_id.id),
+                ('ecommerce_external_reference', '=', self.external_order_id),
+            ], limit=1)
+            if duplicate:
+                self.write({
+                    'state': 'duplicate',
+                    'warning_message': f"Duplicate sale order found: {duplicate.name}.",
+                    'last_processed_at': fields.Datetime.now(),
+                })
+                return
+
+        # Step 3 — Partner check
+        if not self.partner_id:
+            self.write({
+                'state': 'failed',
+                'error_message': "No matched customer (partner_id). Run customer matching before validating.",
+                'last_processed_at': fields.Datetime.now()
+            })
+            return
+
+        # Step 4 — Line mapping check
+        if not self.line_ids:
+            self.write({
+                'state': 'pending_mapping',
+                'error_message': "Order has no lines and cannot be imported.",
+                'last_processed_at': fields.Datetime.now()
+            })
+            return
+
+        unmapped_lines = []
+        for line in self.line_ids:
+            if line.state != 'mapped' or not line.product_id:
+                unmapped_lines.append(line.external_line_id or str(line.id))
+        
+        if unmapped_lines:
+            self.write({
+                'state': 'pending_mapping',
+                'error_message': f"Unmapped lines detected: {', '.join(unmapped_lines)}",
+                'last_processed_at': fields.Datetime.now()
+            })
+            return
+
+        # Step 5 — Currency warning check (non-blocking)
+        warning_message = self.warning_message or ""
+        if self.currency_id != self.company_id.currency_id:
+            msg = f"Order currency {self.currency_id.name} differs from company currency {self.company_id.currency_id.name}. Verify pricing before importing."
+            if msg not in warning_message:
+                warning_message = f"{warning_message}\n{msg}".strip()
+
+        # Step 6 — All checks passed → Ready state
+        self.write({
+            'state': 'ready',
+            'error_message': False,
+            'warning_message': warning_message if warning_message else False,
+            'last_processed_at': fields.Datetime.now()
+        })
