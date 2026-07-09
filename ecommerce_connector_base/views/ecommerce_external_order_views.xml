@@ -102,9 +102,12 @@
                     <group>
                         <group string="Commercial Values">
                             <field name="currency_id"/>
+                            <field name="currency_mismatch" widget="badge" decoration-warning="currency_mismatch == True" invisible="not currency_mismatch"/>
                             <field name="total_amount"/>
                             <field name="shipping_amount"/>
+                            <field name="shipping_product_id"/>
                             <field name="discount_amount"/>
+                            <field name="discount_strategy"/>
                             <field name="tax_amount"/>
                         </group>
 
@@ -118,6 +121,9 @@
 
                     <notebook>
                         <page string="Lines">
+                            <div class="alert alert-info" role="alert" style="margin-bottom: 10px;">
+                                <strong>Tax Note:</strong> The <code>tax_amount</code> shown above is the external platform's reported tax. When the sale order is created, Odoo's own tax engine will recalculate taxes based on configured tax rules. The imported tax amount is for reference and reconciliation only.
+                            </div>
                             <field name="line_ids">
                                 <list editable="bottom">
                                     <field name="external_line_id"/>
