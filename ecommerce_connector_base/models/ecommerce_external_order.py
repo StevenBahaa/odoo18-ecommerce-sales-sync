@@ -98,6 +98,27 @@ class EcommerceExternalOrder(models.Model):
         default=lambda self: self.env.company.currency_id,
         tracking=True,
     )
+    currency_mismatch = fields.Boolean(
+        string="Currency Mismatch",
+        compute="_compute_currency_mismatch",
+        store=False,
+    )
+    discount_strategy = fields.Selection(
+        related="store_id.discount_strategy",
+        selection=[
+            ("line_discount", "Line Discount"),
+            ("proportional", "Proportional Allocation"),
+            ("note_only", "Note Only"),
+        ],
+        string="Discount Strategy",
+        readonly=True,
+    )
+    shipping_product_id = fields.Many2one(
+        comodel_name="product.product",
+        related="store_id.shipping_product_id",
+        string="Shipping Product",
+        readonly=True,
+    )
     order_date = fields.Datetime(
         string="External Order Date",
         tracking=True,
@@ -211,6 +232,14 @@ class EcommerceExternalOrder(models.Model):
     def _compute_line_count(self):
         for order in self:
             order.line_count = len(order.line_ids)
+
+    @api.depends("currency_id", "company_id")
+    def _compute_currency_mismatch(self):
+        for order in self:
+            order.currency_mismatch = (
+                order.currency_id and order.company_id and 
+                order.currency_id != order.company_id.currency_id
+            )
 
     def action_set_captured(self):
         self.write({
