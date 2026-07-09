@@ -20,6 +20,7 @@
         "views/ecommerce_external_order_views.xml",
         "views/ecommerce_external_order_line_views.xml",
         "views/ecommerce_customer_mapping_views.xml",
+        "views/ecommerce_product_mapping_views.xml",
         "views/ecommerce_menu.xml",
     ],
     "installable": True,

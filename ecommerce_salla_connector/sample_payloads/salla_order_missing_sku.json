@@ -1,0 +1,40 @@
+{
+  "event": "order.created",
+  "id": "mock-event-order-missing-sku-001",
+  "created_at": "2026-06-11T10:00:00Z",
+  "merchant": {
+    "id": "mock-merchant-001",
+    "name": "Mock Salla Store"
+  },
+  "data": {
+    "id": "SALLA-ORDER-3001",
+    "order_id": "SALLA-ORDER-3001",
+    "reference_id": "REF-3001",
+    "status": "created",
+    "payment_status": "paid",
+    "currency": "SAR",
+    "customer": {
+      "id": "CUST-003",
+      "name": "Missing SKU Customer",
+      "email": "no.sku@example.com",
+      "mobile": "+966500000003"
+    },
+    "amounts": {
+      "total": {"amount": 75.0, "currency": "SAR"},
+      "shipping_cost": {"amount": 10.0, "currency": "SAR"},
+      "discounts": {"amount": 0.0, "currency": "SAR"},
+      "tax": {"amount": 5.0, "currency": "SAR"}
+    },
+    "items": [
+      {
+        "id": "LINE-007",
+        "product_id": "EXT-PROD-007",
+        "variant_id": "",
+        "sku": null,
+        "name": "Product With No SKU",
+        "quantity": 1,
+        "price": {"amount": 75.0, "currency": "SAR"}
+      }
+    ]
+  }
+}

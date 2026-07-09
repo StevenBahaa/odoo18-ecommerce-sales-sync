@@ -91,8 +91,9 @@ class EcommerceExternalOrderLine(models.Model):
     )
     match_method = fields.Selection(
         selection=[
+            ("mapping", "Mapping"),
             ("sku", "SKU"),
-            ("product_id", "External Product ID"),
+            ("ambiguous", "Ambiguous SKU"),
             ("manual", "Manual"),
             ("none", "None"),
         ],
