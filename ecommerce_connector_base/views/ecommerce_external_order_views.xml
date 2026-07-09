@@ -54,11 +54,19 @@
                         groups="ecommerce_connector_base.group_ecommerce_connector_manager"
                     />
                     <button
+                        name="action_validate"
+                        string="Validate"
+                        type="object"
+                        class="btn-primary"
+                        invisible="state not in ('captured', 'pending_mapping', 'pending_review', 'failed')"
+                        groups="ecommerce_connector_base.group_ecommerce_connector_manager"
+                    />
+                    <button
                         name="action_reset_to_draft"
                         string="Reset to Draft"
                         type="object"
                         class="btn-secondary"
-                        invisible="state not in ('failed', 'pending_review', 'pending_mapping')"
+                        invisible="state not in ('failed', 'pending_review', 'pending_mapping', 'ready')"
                         groups="ecommerce_connector_base.group_ecommerce_connector_manager"
                     />
                     <field
