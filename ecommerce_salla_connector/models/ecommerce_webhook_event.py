@@ -138,6 +138,7 @@ class EcommerceWebhookEvent(models.Model):
             return
             
         partner = external_order._match_or_create_customer()
+        external_order._match_products()
         
         status = "processed"
         if external_order.state == "pending_review":

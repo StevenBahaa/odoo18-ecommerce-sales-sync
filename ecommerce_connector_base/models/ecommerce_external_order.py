@@ -385,3 +385,123 @@ class EcommerceExternalOrder(models.Model):
             'normalized_customer_phone': normalized_phone,
         })
         return partner_id
+
+    def _match_products(self):
+        self.ensure_one()
+
+        Mapping = self.env['ecommerce.product.mapping']
+        Product = self.env['product.product']
+
+        all_mapped = True
+        
+        for line in self.line_ids:
+            ext_prod_id = (line.external_product_id or "").strip()
+            ext_var_id = (line.external_variant_id or "").strip()
+            ext_sku = (line.external_sku or "").strip()
+
+            matched_product = False
+            match_method = 'none'
+            state = 'pending_mapping'
+            error_message = False
+
+            mapping = False
+
+            # 1. Check existing mapping
+            if ext_prod_id:
+                mapping = Mapping.search([
+                    ('store_id', '=', self.store_id.id),
+                    ('external_product_id', '=', ext_prod_id),
+                    ('external_variant_id', '=', ext_var_id),
+                ], limit=1)
+
+                if mapping:
+                    matched_product = mapping.product_id
+                    match_method = 'mapping'
+                    state = 'mapped'
+                    # Only update last_seen_at if our date is newer
+                    event_date = self.order_date or fields.Datetime.now()
+                    if not mapping.last_seen_at or mapping.last_seen_at < event_date:
+                        mapping.write({'last_seen_at': event_date})
+
+            # 2. Check SKU if no mapping
+            if not matched_product and ext_sku:
+                # '&' is implicit first operator; we need:
+                # default_code = ext_sku AND (company_id = False OR company_id = our_company)
+                domain = [
+                    '&',
+                    ('default_code', '=', ext_sku),
+                    '|', ('company_id', '=', False), ('company_id', '=', self.company_id.id)
+                ]
+                products = Product.search(domain)
+                
+                if len(products) == 1:
+                    matched_product = products[0]
+                    match_method = 'sku'
+                    state = 'mapped'
+
+                    # Create mapping if external_product_id exists
+                    if ext_prod_id:
+                        try:
+                            with self.env.cr.savepoint():
+                                Mapping.create({
+                                    'store_id': self.store_id.id,
+                                    'company_id': self.company_id.id,
+                                    'external_product_id': ext_prod_id,
+                                    'external_variant_id': ext_var_id,
+                                    'external_sku': ext_sku,
+                                    'product_id': matched_product.id,
+                                    'last_seen_at': self.order_date or fields.Datetime.now(),
+                                })
+                        except IntegrityError:
+                            # Concurrent creation happened
+                            mapping = Mapping.search([
+                                ('store_id', '=', self.store_id.id),
+                                ('external_product_id', '=', ext_prod_id),
+                                ('external_variant_id', '=', ext_var_id),
+                            ], limit=1)
+                            if mapping:
+                                matched_product = mapping.product_id
+                                match_method = 'mapping'
+                                event_date = self.order_date or fields.Datetime.now()
+                                if not mapping.last_seen_at or mapping.last_seen_at < event_date:
+                                    mapping.write({'last_seen_at': event_date})
+                            else:
+                                raise
+
+                elif len(products) > 1:
+                    match_method = 'ambiguous'
+                    state = 'pending_mapping'
+                    error_message = f"Ambiguous SKU match: {len(products)} Odoo products found for SKU '{ext_sku}'."
+                else:
+                    match_method = 'none'
+                    state = 'pending_mapping'
+                    error_message = f"Product SKU '{ext_sku}' not found in Odoo."
+
+            if not matched_product and not error_message:
+                error_message = "No SKU and no mapping found for this product."
+            
+            if not matched_product:
+                all_mapped = False
+
+            line.write({
+                'product_id': matched_product.id if matched_product else False,
+                'match_method': match_method,
+                'state': state,
+                'error_message': error_message,
+            })
+
+        # Update order state
+        if not self.line_ids:
+            if self.state != 'pending_review':
+                self.write({
+                    'state': 'pending_mapping',
+                    'warning_message': 'Order has no lines. Cannot be processed into a sale order.'
+                })
+            return
+
+        if self.state != 'pending_review':
+            if not all_mapped:
+                self.write({'state': 'pending_mapping'})
+            else:
+                if self.state in ('draft', 'pending_mapping'):
+                    self.write({'state': 'captured'})
