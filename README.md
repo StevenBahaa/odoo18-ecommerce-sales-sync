@@ -99,16 +99,22 @@ The integration user should not be the main Administrator user.
 
 If no integration user is configured on the store, future webhook handling may only store the raw webhook event with minimal controlled elevation. It must not create partners, products, external orders, or sale orders using broad unrestricted superuser access.
 
+## Phone Normalization Note (MVP Limit)
+
+Phone normalization in this MVP strictly removes formatting (spaces, dashes, parentheses) to produce a digits-only string.
+It does not infer country-code equivalence.
+For example, `01000000000` is not considered equivalent to `+201000000000`.
+
 ## Development Roadmap
 
 Current milestone:
 
 ```text
-UC-00 — Repository Setup & Project Rules
+UC-07 — Customer Matching & Phone Normalization
 ```
 
 Next milestone:
 
 ```text
-UC-01 — Connector Base & Store Configuration
+UC-08 — Product Mapping by SKU and External Product ID
 ```

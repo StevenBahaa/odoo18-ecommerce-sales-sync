@@ -135,6 +135,14 @@ class EcommerceWebhookEvent(models.Model):
         check_company=True,
     )
 
+    related_external_order_id = fields.Many2one(
+        "ecommerce.external.order",
+        string="Related External Order",
+        readonly=True,
+        index=True,
+        check_company=True,
+    )
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -161,6 +169,7 @@ class EcommerceWebhookEvent(models.Model):
 
     def _apply_uc03_processing_gate(self):
         now = fields.Datetime.now()
+
         for event in self:
             store = event.store_id
 
@@ -175,8 +184,20 @@ class EcommerceWebhookEvent(models.Model):
                 })
                 continue
 
-            event.sudo().write({
-                "processing_status": "processed",
-                "error_message": False,
-                "processed_at": now,
-            })
+            try:
+                event.with_user(store.integration_user_id).with_company(
+                    store.company_id
+                )._process_business_event()
+            except Exception as exc:
+                event.sudo().write({
+                    "processing_status": "failed",
+                    "error_message": str(exc)[:1000],
+                    "processed_at": fields.Datetime.now(),
+                })
+
+    def _process_business_event(self):
+        self.write({
+            "processing_status": "processed",
+            "error_message": False,
+            "processed_at": fields.Datetime.now(),
+        })

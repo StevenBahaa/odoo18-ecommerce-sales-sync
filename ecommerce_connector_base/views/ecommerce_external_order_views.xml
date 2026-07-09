@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_ecommerce_external_order_list" model="ir.ui.view">
+        <field name="name">ecommerce.external.order.list</field>
+        <field name="model">ecommerce.external.order</field>
+        <field name="arch" type="xml">
+            <list
+                string="External Orders"
+                decoration-success="state in ('ready', 'imported')"
+                decoration-warning="state in ('pending_mapping', 'pending_review')"
+                decoration-danger="state == 'failed'"
+                decoration-muted="state in ('cancelled', 'duplicate')"
+            >
+                <field name="create_date"/>
+                <field name="name"/>
+                <field name="store_id"/>
+                <field name="platform"/>
+                <field name="external_order_id"/>
+                <field name="external_order_reference"/>
+                <field name="customer_name"/>
+                <field name="customer_phone"/>
+                <field name="currency_id"/>
+                <field name="total_amount"/>
+                <field name="line_count"/>
+                <field name="payment_status"/>
+                <field name="fulfillment_status"/>
+                <field name="state"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ecommerce_external_order_form" model="ir.ui.view">
+        <field name="name">ecommerce.external.order.form</field>
+        <field name="model">ecommerce.external.order</field>
+        <field name="arch" type="xml">
+            <form string="External Order">
+                <header>
+                    <button
+                        name="action_set_captured"
+                        string="Mark Captured"
+                        type="object"
+                        class="btn-primary"
+                        invisible="state != 'draft'"
+                        groups="ecommerce_connector_base.group_ecommerce_connector_manager"
+                    />
+                    <button
+                        name="action_set_pending_review"
+                        string="Send to Pending Review"
+                        type="object"
+                        class="btn-secondary"
+                        invisible="state in ('imported', 'cancelled', 'duplicate')"
+                        groups="ecommerce_connector_base.group_ecommerce_connector_manager"
+                    />
+                    <button
+                        name="action_reset_to_draft"
+                        string="Reset to Draft"
+                        type="object"
+                        class="btn-secondary"
+                        invisible="state not in ('failed', 'pending_review', 'pending_mapping')"
+                        groups="ecommerce_connector_base.group_ecommerce_connector_manager"
+                    />
+                    <field
+                        name="state"
+                        widget="statusbar"
+                        statusbar_visible="draft,captured,pending_mapping,ready,imported"
+                    />
+                </header>
+
+                <sheet>
+                    <group>
+                        <group string="External Order">
+                            <field name="name"/>
+                            <field name="store_id"/>
+                            <field name="platform"/>
+                            <field name="external_order_id"/>
+                            <field name="external_order_reference"/>
+                            <field name="external_status"/>
+                            <field name="order_date"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+
+                        <group string="Customer">
+                            <field name="customer_name"/>
+                            <field name="customer_phone"/>
+                            <field name="normalized_customer_phone"/>
+                            <field name="customer_email"/>
+                            <field name="external_customer_id"/>
+                            <field name="partner_id"/>
+                        </group>
+                    </group>
+
+                    <group>
+                        <group string="Commercial Values">
+                            <field name="currency_id"/>
+                            <field name="total_amount"/>
+                            <field name="shipping_amount"/>
+                            <field name="discount_amount"/>
+                            <field name="tax_amount"/>
+                        </group>
+
+                        <group string="Statuses">
+                            <field name="payment_status"/>
+                            <field name="fulfillment_status"/>
+                            <field name="last_processed_at"/>
+                            <field name="sale_order_id"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Lines">
+                            <field name="line_ids">
+                                <list editable="bottom">
+                                    <field name="external_line_id"/>
+                                    <field name="external_product_id"/>
+                                    <field name="external_variant_id"/>
+                                    <field name="external_sku"/>
+                                    <field name="product_name"/>
+                                    <field name="quantity"/>
+                                    <field name="unit_price"/>
+                                    <field name="subtotal"/>
+                                    <field name="discount_amount"/>
+                                    <field name="tax_amount"/>
+                                    <field name="product_id"/>
+                                    <field name="match_method"/>
+                                    <field name="state"/>
+                                </list>
+                            </field>
+                        </page>
+
+                        <page string="Raw Payload">
+                            <field name="raw_payload" nolabel="1"/>
+                        </page>
+
+                        <page string="Errors / Warnings">
+                            <group>
+                                <field name="error_message" nolabel="1" placeholder="Error details will appear here."/>
+                                <field name="warning_message" nolabel="1" placeholder="Warnings will appear here."/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_ecommerce_external_order_search" model="ir.ui.view">
+        <field name="name">ecommerce.external.order.search</field>
+        <field name="model">ecommerce.external.order</field>
+        <field name="arch" type="xml">
+            <search string="Search External Orders">
+                <field name="name"/>
+                <field name="store_id"/>
+                <field name="external_order_id"/>
+                <field name="external_order_reference"/>
+                <field name="customer_name"/>
+                <field name="customer_phone"/>
+                <field name="customer_email"/>
+                <field name="external_customer_id"/>
+                <field name="state"/>
+
+                <separator/>
+
+                <filter name="filter_draft" string="Draft" domain="[('state', '=', 'draft')]"/>
+                <filter name="filter_captured" string="Captured" domain="[('state', '=', 'captured')]"/>
+                <filter name="filter_pending_mapping" string="Pending Mapping" domain="[('state', '=', 'pending_mapping')]"/>
+                <filter name="filter_ready" string="Ready" domain="[('state', '=', 'ready')]"/>
+                <filter name="filter_imported" string="Imported" domain="[('state', '=', 'imported')]"/>
+                <filter name="filter_failed" string="Failed" domain="[('state', '=', 'failed')]"/>
+                <filter name="filter_pending_review" string="Pending Review" domain="[('state', '=', 'pending_review')]"/>
+
+                <group expand="0" string="Group By">
+                    <filter name="group_by_store" string="Store" context="{'group_by': 'store_id'}"/>
+                    <filter name="group_by_platform" string="Platform" context="{'group_by': 'platform'}"/>
+                    <filter name="group_by_state" string="State" context="{'group_by': 'state'}"/>
+                    <filter name="group_by_payment_status" string="Payment Status" context="{'group_by': 'payment_status'}"/>
+                    <filter name="group_by_company" string="Company" context="{'group_by': 'company_id'}"/>
+                    <filter name="group_by_day" string="Day" context="{'group_by': 'create_date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_ecommerce_external_order" model="ir.actions.act_window">
+        <field name="name">External Orders</field>
+        <field name="res_model">ecommerce.external.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_ecommerce_external_order_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No external orders yet.
+            </p>
+            <p>
+                External orders are staging records created before Odoo sale orders.
+            </p>
+        </field>
+    </record>
+
+</odoo>

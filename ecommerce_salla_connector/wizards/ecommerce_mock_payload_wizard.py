@@ -19,6 +19,8 @@ class EcommerceMockPayloadWizard(models.TransientModel):
     payload_template = fields.Selection(
         selection=[
             ("salla_order_created", "Salla - order.created"),
+            ("salla_order_created_same_customer_new_order", "Salla - order.created (TC-6)"),
+            ("salla_order_updated", "Salla - order.updated"),
             ("salla_app_store_authorize", "Salla - app.store.authorize"),
             ("custom_json", "Custom JSON"),
         ],
@@ -127,6 +129,9 @@ class EcommerceMockPayloadWizard(models.TransientModel):
     def _get_sample_payload_content(self, template):
         filename_by_template = {
             "salla_order_created": "salla_order_created.json",
+            "salla_order_created_same_customer_new_order": "salla_order_created_same_customer_new_order.json",
+            "salla_order_updated": "salla_order_updated.json",
+
             "salla_app_store_authorize": "salla_app_store_authorize.json",
         }
 
