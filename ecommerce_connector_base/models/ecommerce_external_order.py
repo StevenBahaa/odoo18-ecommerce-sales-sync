@@ -105,10 +105,16 @@ class EcommerceExternalOrder(models.Model):
     )
     discount_strategy = fields.Selection(
         related="store_id.discount_strategy",
+        selection=[
+            ("line_discount", "Line Discount"),
+            ("proportional", "Proportional Allocation"),
+            ("note_only", "Note Only"),
+        ],
         string="Discount Strategy",
         readonly=True,
     )
     shipping_product_id = fields.Many2one(
+        comodel_name="product.product",
         related="store_id.shipping_product_id",
         string="Shipping Product",
         readonly=True,
