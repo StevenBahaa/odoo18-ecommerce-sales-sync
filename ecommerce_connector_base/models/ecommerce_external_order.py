@@ -1,5 +1,6 @@
 from psycopg2 import IntegrityError
-from odoo import models, fields ,api,_
+from odoo import models, fields, api, _
+from odoo.exceptions import UserError
 from ..utils.phone_utils import normalize_phone_digits
 
 
@@ -609,4 +610,154 @@ class EcommerceExternalOrder(models.Model):
             'error_message': False,
             'warning_message': warning_message if warning_message else False,
             'last_processed_at': fields.Datetime.now()
+        })
+
+    def action_create_sale_order(self):
+        self.ensure_one()
+        
+        if self.state != 'ready':
+            raise UserError("This external order must be in 'Ready' state before creating a sale order.")
+
+        if self.sale_order_id:
+            raise UserError(f"A sale order ({self.sale_order_id.name}) is already linked to this order.")
+
+        so_vals = {
+            'partner_id':                    self.partner_id.id,
+            'company_id':                    self.company_id.id,
+            'date_order':                    self.order_date or fields.Datetime.now(),
+            'origin':                        f"E-commerce: {self.external_order_reference or self.external_order_id}",
+            'ecommerce_store_id':            self.store_id.id,
+            'ecommerce_external_reference':  self.external_order_id,
+            'ecommerce_external_order_id':   self.id,
+            'ecommerce_payment_status':      self.payment_status or '',
+            'ecommerce_fulfillment_status':  self.fulfillment_status or '',
+        }
+
+        if self.store_id.default_warehouse_id:
+            so_vals['warehouse_id'] = self.store_id.default_warehouse_id.id
+
+        if self.store_id.default_sales_team_id:
+            so_vals['team_id'] = self.store_id.default_sales_team_id.id
+
+        if self.store_id.default_pricelist_id:
+            so_vals['pricelist_id'] = self.store_id.default_pricelist_id.id
+
+        try:
+            with self.env.cr.savepoint():
+                sale_order = self.env['sale.order'].create(so_vals)
+
+                total_product_subtotal = sum(l.quantity * l.unit_price for l in self.line_ids)
+
+                line_warnings = []
+
+                for line in self.line_ids:
+                    line_vals, line_warning = self._build_so_line_vals(line, sale_order, total_product_subtotal)
+                    if line_warning:
+                        line_warnings.append(line_warning)
+                    self.env['sale.order.line'].create(line_vals)
+
+                shipping_warning = self._create_shipping_line(sale_order)
+                self._create_discount_note_line(sale_order, total_product_subtotal)
+
+                write_vals = {
+                    'sale_order_id':      sale_order.id,
+                    'state':              'imported',
+                    'error_message':      False,
+                    'last_processed_at':  fields.Datetime.now(),
+                }
+                
+                all_new_warnings = line_warnings + ([shipping_warning] if shipping_warning else [])
+                if all_new_warnings:
+                    existing = self.warning_message or ''
+                    combined = f"{existing}\n" + "\n".join(all_new_warnings) if existing else "\n".join(all_new_warnings)
+                    write_vals['warning_message'] = combined.strip()
+                
+                self.write(write_vals)
+                
+        except Exception as e:
+            self.write({
+                'state':              'failed',
+                'error_message':      str(e),
+                'last_processed_at':  fields.Datetime.now(),
+            })
+            return False
+
+        return self.action_open_sale_order()
+
+    def action_open_sale_order(self):
+        self.ensure_one()
+        if not self.sale_order_id:
+            return
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'sale.order',
+            'res_id': self.sale_order_id.id,
+            'view_mode': 'form',
+        }
+
+    def _build_so_line_vals(self, line, sale_order, total_product_subtotal):
+        strategy = self.store_id.discount_strategy
+        raw_discount_pct = 0.0
+
+        if strategy == 'line_discount':
+            if line.quantity * line.unit_price > 0:
+                raw_discount_pct = (line.discount_amount / (line.quantity * line.unit_price)) * 100
+        elif strategy == 'proportional':
+            if total_product_subtotal > 0:
+                raw_discount_pct = (self.discount_amount / total_product_subtotal) * 100
+
+        computed_discount_pct = max(0.0, min(100.0, raw_discount_pct))
+
+        warning = None
+        if raw_discount_pct < 0:
+            warning = (
+                f"Line {line.external_line_id or line.id}: negative discount value detected "
+                f"(computed {round(raw_discount_pct, 2)}%) and treated as 0%."
+            )
+
+        line_vals = {
+            'order_id':          sale_order.id,
+            'product_id':        line.product_id.id,
+            'name':              line.product_name,
+            'product_uom_qty':   line.quantity,
+            'product_uom':       line.product_id.uom_id.id,
+            'price_unit':        line.unit_price,
+            'discount':          computed_discount_pct,
+        }
+        return line_vals, warning
+
+    def _create_shipping_line(self, sale_order):
+        if self.shipping_amount <= 0:
+            return None
+
+        shipping_product = self.store_id.shipping_product_id
+        if not shipping_product:
+            return f"Shipping amount of {self.shipping_amount} {self.currency_id.name} was not added as a line because no shipping product is configured on the store."
+
+        self.env['sale.order.line'].create({
+            'order_id':        sale_order.id,
+            'product_id':      shipping_product.id,
+            'name':            shipping_product.display_name or "Shipping",
+            'product_uom_qty': 1.0,
+            'product_uom':     shipping_product.uom_id.id,
+            'price_unit':      self.shipping_amount,
+            'discount':        0.0,
+        })
+        return None
+
+    def _create_discount_note_line(self, sale_order, total_product_subtotal):
+        strategy = self.store_id.discount_strategy
+        
+        if strategy != 'note_only' and not (strategy == 'proportional' and total_product_subtotal == 0):
+            return
+
+        display_discount = max(0.0, self.discount_amount or 0.0)
+
+        self.env['sale.order.line'].create({
+            'order_id':        sale_order.id,
+            'display_type':    'line_note',
+            'name':            f"Discount of {display_discount} {self.currency_id.name} was applied by the external platform. Not reflected in line pricing.",
+            'product_uom_qty': 0,
+            'price_unit':      0.0,
+            'product_id':      False,
         })

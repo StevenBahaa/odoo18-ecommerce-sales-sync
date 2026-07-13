@@ -62,6 +62,14 @@
                         groups="ecommerce_connector_base.group_ecommerce_connector_manager"
                     />
                     <button
+                        name="action_create_sale_order"
+                        string="Create Sale Order"
+                        type="object"
+                        class="btn-primary"
+                        invisible="state != 'ready'"
+                        groups="ecommerce_connector_base.group_ecommerce_connector_manager"
+                    />
+                    <button
                         name="action_reset_to_draft"
                         string="Reset to Draft"
                         type="object"
@@ -77,6 +85,13 @@
                 </header>
 
                 <sheet>
+                    <div name="button_box" class="oe_button_box">
+                        <button type="object" name="action_open_sale_order"
+                                class="oe_stat_button" icon="fa-shopping-cart"
+                                invisible="not sale_order_id">
+                            <field name="sale_order_id" widget="statinfo" string="Sale Order"/>
+                        </button>
+                    </div>
                     <group>
                         <group string="External Order">
                             <field name="name"/>
