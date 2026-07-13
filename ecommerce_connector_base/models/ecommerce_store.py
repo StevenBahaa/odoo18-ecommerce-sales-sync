@@ -171,6 +171,7 @@ class EcommerceStore(models.Model):
         default="manual_validate",
         required=True,
         tracking=True,
+        help="Manual Validation requires a manager to click 'Create Sale Order' when the order is Ready. Auto Import When Ready is reserved for a future UC and is currently inactive — selecting it has no effect.",
     )
     stock_sync_policy = fields.Selection(
         selection=[
