@@ -31,3 +31,33 @@ Create/import a new external customer through a Store belonging to Company A.
 Verify the created partner has company_id = Company A and is correctly linked to the Company A external order.
 Do not change cross-company customer reuse policy in UC-07.
 
+## UC-12 — Duplicate Protection & Idempotency
+
+### TC-UC12-1 — Pre-upgrade duplicate check
+Run `scripts/check_uc12_sale_order_duplicates.sql` against the development database before upgrading the base module.
+Resolve every returned store/reference pair before applying the sale-order uniqueness constraint.
+
+### TC-UC12-2 — Repeated webhook payload
+Send the same order payload twice.
+Verify that exactly one external order is created, the second webhook event is `duplicate`, and both events link to the existing external order.
+
+### TC-UC12-3 — Repeated sale-order import
+Create a sale order from a ready external order, then invoke the import action again.
+Verify that the existing sale order is opened and no second sale order is created.
+
+### TC-UC12-4 — Existing sale order during validation
+Create an external order and an existing sale order with the same store and external reference.
+Validate the external order and verify that it links the existing sale order and becomes `imported`.
+
+### TC-UC12-5 — Database uniqueness
+Attempt to create two sale orders with the same non-null store and external reference.
+Verify that PostgreSQL rejects the second record while normal sale orders without connector fields remain allowed.
+
+### TC-UC12-6 — Race recovery
+Exercise the protected create-race path so a uniqueness conflict is raised after the initial lookup.
+Verify that the winning sale order is re-found, linked, and returned without a user-facing traceback.
+
+### TC-UC12-7 — Cross-store external references
+Use the same external reference for two different stores.
+Verify that each store can have one sale order and that the stores do not conflict with each other.
+

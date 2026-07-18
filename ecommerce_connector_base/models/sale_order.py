@@ -38,3 +38,11 @@ class SaleOrder(models.Model):
         string="E-commerce Fulfillment Status",
         copy=False,
     )
+
+    _sql_constraints = [
+        (
+            'ecommerce_store_external_order_unique',
+            'UNIQUE(ecommerce_store_id, ecommerce_external_reference)',
+            'A sale order with this external reference already exists for this store.'
+        )
+    ]

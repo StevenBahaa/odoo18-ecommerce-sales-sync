@@ -535,6 +535,27 @@ class EcommerceExternalOrder(models.Model):
             else:
                 self.action_validate()
 
+    def _find_existing_sale_order(self):
+        self.ensure_one()
+        return self.env['sale.order'].search([
+            ('ecommerce_store_id', '=', self.store_id.id),
+            ('ecommerce_external_reference', '=', self.external_order_id),
+        ], limit=1)
+
+    def _link_existing_sale_order(self, sale_order, warning_message=False):
+        self.ensure_one()
+
+        vals = {
+            'sale_order_id': sale_order.id,
+            'state': 'imported',
+            'error_message': False,
+            'last_processed_at': fields.Datetime.now(),
+        }
+        if warning_message:
+            vals['warning_message'] = warning_message
+
+        self.write(vals)
+
     def action_validate(self):
         self.ensure_one()
 
@@ -548,23 +569,13 @@ class EcommerceExternalOrder(models.Model):
             return
 
         # Step 2 — Database duplicate check on sale.order
-        # Note: Fields ecommerce_store_id and ecommerce_external_reference are added
-        # to sale.order in UC-11. We guard with a field existence check to avoid
-        # crashing before UC-11 is installed.
-        SaleOrder = self.env['sale.order']
-        so_fields = SaleOrder._fields
-        if 'ecommerce_store_id' in so_fields and 'ecommerce_external_reference' in so_fields:
-            duplicate = SaleOrder.search([
-                ('ecommerce_store_id', '=', self.store_id.id),
-                ('ecommerce_external_reference', '=', self.external_order_id),
-            ], limit=1)
-            if duplicate:
-                self.write({
-                    'state': 'duplicate',
-                    'warning_message': f"Duplicate sale order found: {duplicate.name}.",
-                    'last_processed_at': fields.Datetime.now(),
-                })
-                return
+        duplicate = self._find_existing_sale_order()
+        if duplicate:
+            self._link_existing_sale_order(
+                duplicate,
+                f"Existing sale order {duplicate.name} was linked to this external order.",
+            )
+            return
 
         # Step 3 — Partner check
         if not self.partner_id:
@@ -614,12 +625,17 @@ class EcommerceExternalOrder(models.Model):
 
     def action_create_sale_order(self):
         self.ensure_one()
-        
-        if self.state != 'ready':
-            raise UserError("This external order must be in 'Ready' state before creating a sale order.")
 
         if self.sale_order_id:
-            raise UserError(f"A sale order ({self.sale_order_id.name}) is already linked to this order.")
+            return self.action_open_sale_order()
+
+        duplicate = self._find_existing_sale_order()
+        if duplicate:
+            self._link_existing_sale_order(duplicate)
+            return self.action_open_sale_order()
+
+        if self.state != 'ready':
+            raise UserError("This external order must be in 'Ready' state before creating a sale order.")
 
         so_vals = {
             'partner_id':                    self.partner_id.id,
@@ -644,7 +660,16 @@ class EcommerceExternalOrder(models.Model):
 
         try:
             with self.env.cr.savepoint():
-                sale_order = self.env['sale.order'].create(so_vals)
+                try:
+                    with self.env.cr.savepoint():
+                        sale_order = self.env['sale.order'].create(so_vals)
+                except IntegrityError:
+                    # Concurrent creation happened
+                    duplicate = self._find_existing_sale_order()
+                    if duplicate:
+                        self._link_existing_sale_order(duplicate)
+                        return self.action_open_sale_order()
+                    raise
 
                 total_product_subtotal = sum(l.quantity * l.unit_price for l in self.line_ids)
 

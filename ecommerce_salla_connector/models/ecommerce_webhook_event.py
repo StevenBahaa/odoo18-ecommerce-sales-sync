@@ -56,6 +56,8 @@ class EcommerceWebhookEvent(models.Model):
         if existing_order:
             self.write({
                 "related_external_order_id": existing_order.id,
+                "related_partner_id": existing_order.partner_id.id if existing_order.partner_id else False,
+                "related_sale_order_id": existing_order.sale_order_id.id if existing_order.sale_order_id else False,
                 "processing_status": "duplicate",
                 "error_message": _(
                     "External order already exists for this store. "
@@ -128,6 +130,8 @@ class EcommerceWebhookEvent(models.Model):
 
             self.write({
                 "related_external_order_id": existing_order.id if existing_order else False,
+                "related_partner_id": existing_order.partner_id.id if existing_order and existing_order.partner_id else False,
+                "related_sale_order_id": existing_order.sale_order_id.id if existing_order and existing_order.sale_order_id else False,
                 "processing_status": "duplicate",
                 "error_message": _(
                     "External order already exists for this store. "

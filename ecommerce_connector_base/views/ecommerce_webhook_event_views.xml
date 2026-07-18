@@ -114,6 +114,7 @@
                 <filter name="filter_failed" string="Failed" domain="[('processing_status', '=', 'failed')]"/>
                 <filter name="filter_invalid_signature" string="Invalid Signature" domain="[('processing_status', '=', 'invalid_signature')]"/>
                 <filter name="filter_rate_limited" string="Rate Limited" domain="[('processing_status', '=', 'rate_limited')]"/>
+                <filter name="filter_duplicate" string="Duplicate" domain="[('processing_status', '=', 'duplicate')]"/>
 
                 <separator/>
 
