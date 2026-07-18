@@ -110,11 +110,17 @@ For example, `01000000000` is not considered equivalent to `+201000000000`.
 Current milestone:
 
 ```text
-UC-07 — Customer Matching & Phone Normalization
+UC-12 — Duplicate Protection & Idempotency
 ```
 
 Next milestone:
 
 ```text
-UC-08 — Product Mapping by SKU and External Product ID
+UC-13 — Error Queue & Manual Retry
 ```
+
+Before upgrading `ecommerce_connector_base` after adding the UC-12 sale-order
+uniqueness constraint, run `scripts/check_uc12_sale_order_duplicates.sql` against
+the development database. Resolve any duplicate store/reference pairs before the
+upgrade. Archiving alone does not remove a normal SQL uniqueness conflict; the
+connector fields must be corrected/relinked or the duplicate must be safely deleted.

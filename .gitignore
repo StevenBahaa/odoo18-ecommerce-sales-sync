@@ -27,6 +27,7 @@ addons_path.txt
 # Database dumps
 *.dump
 *.sql
+!scripts/check_uc12_sale_order_duplicates.sql
 *.backup
 *.zip
 
@@ -41,3 +42,6 @@ tmp/
 temp/
 
 PROJECT_PLAN.md
+
+# Local UC planning notes (never commit)
+/docs/.plans/
