@@ -140,19 +140,23 @@ class EcommerceWebhookEvent(models.Model):
                 "processed_at": fields.Datetime.now(),
             })
             return
-            
+
         partner = external_order._match_or_create_customer()
         external_order._match_products()
-        
+
         status = "processed"
-        if external_order.state == "pending_review":
-            status = "pending_review"
+        error_msg = False
+
+        if external_order.state in ("pending_mapping", "pending_review", "failed"):
+            status = "pending_review" if external_order.state != "failed" else "failed"
+            error_msg = external_order.error_message or external_order.warning_message
 
         self.write({
             "related_external_order_id": external_order.id,
             "related_partner_id": partner.id if partner else False,
+            "related_sale_order_id": external_order.sale_order_id.id if external_order.sale_order_id else False,
             "processing_status": status,
-            "error_message": external_order.warning_message if status == "pending_review" else False,
+            "error_message": error_msg,
             "processed_at": fields.Datetime.now(),
         })
 
