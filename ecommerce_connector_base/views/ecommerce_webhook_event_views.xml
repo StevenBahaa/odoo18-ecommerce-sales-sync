@@ -22,6 +22,8 @@
                 <field name="related_external_order_id"/>
                 <field name="signature_valid"/>
                 <field name="processing_status"/>
+                <field name="retry_count" optional="hide"/>
+                <field name="last_retry_at" optional="hide"/>
                 <field name="http_status_returned"/>
                 <field name="processed_at"/>
                 <field name="company_id" groups="base.group_multi_company"/>
@@ -36,10 +38,10 @@
             <form string="Webhook Event" create="0" edit="0" delete="0">
                 <header>
                     <button
-                        name="action_mark_received"
-                        string="Mark as Received"
+                        name="action_retry_processing"
+                        string="Retry Processing"
                         type="object"
-                        class="btn-secondary"
+                        class="btn-warning"
                         groups="ecommerce_connector_base.group_ecommerce_connector_manager"
                         invisible="processing_status not in ('failed', 'pending_review')"
                     />
@@ -88,6 +90,19 @@
                         <page string="Error">
                             <field name="error_message" nolabel="1"/>
                         </page>
+
+                        <page string="Retry Audit">
+                            <group>
+                                <group>
+                                    <field name="retry_count"/>
+                                    <field name="last_retry_at"/>
+                                    <field name="last_retry_by_id"/>
+                                </group>
+                            </group>
+                            <group string="Error History">
+                                <field name="error_history" nolabel="1"/>
+                            </group>
+                        </page>
                     </notebook>
                 </sheet>
             </form>
@@ -115,6 +130,9 @@
                 <filter name="filter_invalid_signature" string="Invalid Signature" domain="[('processing_status', '=', 'invalid_signature')]"/>
                 <filter name="filter_rate_limited" string="Rate Limited" domain="[('processing_status', '=', 'rate_limited')]"/>
                 <filter name="filter_duplicate" string="Duplicate" domain="[('processing_status', '=', 'duplicate')]"/>
+
+                <separator/>
+                <filter name="filter_retryable" string="Retryable" domain="[('processing_status', 'in', ('failed', 'pending_review'))]"/>
 
                 <separator/>
 

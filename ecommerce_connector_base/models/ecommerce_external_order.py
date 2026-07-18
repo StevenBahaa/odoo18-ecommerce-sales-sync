@@ -1,6 +1,6 @@
 from psycopg2 import IntegrityError
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError
 from ..utils.phone_utils import normalize_phone_digits
 
 
@@ -33,10 +33,10 @@ class EcommerceExternalOrder(models.Model):
 
     company_id = fields.Many2one(
         'res.company',
-        string='Company', 
-        required=True, 
+        string='Company',
+        required=True,
         index=True,
-        default=lambda self: self.env.company.id, 
+        default=lambda self: self.env.company.id,
         tracking=True,
     )
 
@@ -210,6 +210,28 @@ class EcommerceExternalOrder(models.Model):
         string="Last Processed At",
         copy=False,
     )
+    retry_count = fields.Integer(
+        string="Retry Count",
+        default=0,
+        readonly=True,
+        copy=False,
+    )
+    last_retry_at = fields.Datetime(
+        string="Last Retry At",
+        readonly=True,
+        copy=False,
+    )
+    last_retry_by_id = fields.Many2one(
+        'res.users',
+        string="Last Retry By",
+        readonly=True,
+        copy=False,
+    )
+    error_history = fields.Text(
+        string="Error History",
+        readonly=True,
+        copy=False,
+    )
 
     _sql_constraints = [
         (
@@ -238,7 +260,7 @@ class EcommerceExternalOrder(models.Model):
     def _compute_currency_mismatch(self):
         for order in self:
             order.currency_mismatch = (
-                order.currency_id and order.company_id and 
+                order.currency_id and order.company_id and
                 order.currency_id != order.company_id.currency_id
             )
 
@@ -281,7 +303,7 @@ class EcommerceExternalOrder(models.Model):
         mapping = Mapping
         partner_id = False
         warning = False
-        
+
         # A. Mapping lookup
         if ext_cust_id:
             mapping = Mapping.search([
@@ -290,14 +312,14 @@ class EcommerceExternalOrder(models.Model):
             ], limit=1)
             if mapping:
                 partner_id = mapping.partner_id
-        
+
         # B. Email lookup
         if not partner_id and email:
             if 'email_normalized' in Partner._fields:
                 partners_by_email = Partner.search([('email_normalized', '=', email)])
             else:
                 partners_by_email = Partner.search([('email', '=ilike', email)])
-                
+
             if len(partners_by_email) == 1:
                 partner_id = partners_by_email[0]
             elif len(partners_by_email) > 1:
@@ -366,7 +388,7 @@ class EcommerceExternalOrder(models.Model):
             # F. Mapping upsert for existing partner
             if ext_cust_id:
                 order_date = self.order_date or fields.Datetime.now()
-                
+
                 if mapping:
                     if not mapping.last_order_at or mapping.last_order_at < order_date:
                         mapping.write({
@@ -398,7 +420,7 @@ class EcommerceExternalOrder(models.Model):
                             partner_id = mapping.partner_id
                         else:
                             raise
-            
+
         # Defensive partner guard
         if not partner_id or not partner_id.exists():
             self.write({
@@ -423,7 +445,7 @@ class EcommerceExternalOrder(models.Model):
         Product = self.env['product.product']
 
         all_mapped = True
-        
+
         for line in self.line_ids:
             ext_prod_id = (line.external_product_id or "").strip()
             ext_var_id = (line.external_variant_id or "").strip()
@@ -463,7 +485,7 @@ class EcommerceExternalOrder(models.Model):
                     '|', ('company_id', '=', False), ('company_id', '=', self.company_id.id)
                 ]
                 products = Product.search(domain)
-                
+
                 if len(products) == 1:
                     matched_product = products[0]
                     match_method = 'sku'
@@ -509,7 +531,7 @@ class EcommerceExternalOrder(models.Model):
 
             if not matched_product and not error_message:
                 error_message = "No SKU and no mapping found for this product."
-            
+
             if not matched_product:
                 all_mapped = False
 
@@ -531,9 +553,100 @@ class EcommerceExternalOrder(models.Model):
 
         if self.state != 'pending_review':
             if not all_mapped:
-                self.write({'state': 'pending_mapping'})
+                unmapped_lines = [l for l in self.line_ids if not l.product_id]
+                errs = []
+                for l in unmapped_lines:
+                    name = l.external_sku or l.product_name or l.external_line_id or str(l.id)
+                    errs.append(name)
+                error_msg = "Unmapped lines: " + ", ".join(errs)
+                self.write({
+                    'state': 'pending_mapping',
+                    'error_message': error_msg
+                })
             else:
+                if self.error_message and "Unmapped lines" in self.error_message:
+                    self.write({'error_message': False})
                 self.action_validate()
+
+    def _snapshot_error(self):
+        self.ensure_one()
+        if not self.error_message:
+            return
+
+        timestamp = fields.Datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        requester = self.env.user.name
+        snapshot = f"[{timestamp}] By {requester} (State: {self.state}):\n{self.error_message}\n"
+
+        existing = self.error_history or ""
+        self.error_history = f"{existing}\n{snapshot}".strip()
+
+    def _ensure_retry_manager(self):
+        if not self.env.user.has_group(
+            "ecommerce_connector_base.group_ecommerce_connector_manager"
+        ):
+            raise AccessError(_("Only an E-commerce Connector Manager can retry imports."))
+
+    def action_retry_import(self):
+        self.ensure_one()
+        self._ensure_retry_manager()
+        if self.state not in ('pending_mapping', 'pending_review', 'failed'):
+            raise UserError("Only orders in pending mapping, pending review, or failed state can be retried.")
+
+        self.write({
+            'retry_count': self.retry_count + 1,
+            'last_retry_at': fields.Datetime.now(),
+            'last_retry_by_id': self.env.user.id,
+        })
+
+        self._snapshot_error()
+
+        store = self.store_id.sudo()
+        integration_user = store.integration_user_id
+        if not integration_user:
+            self.write({
+                'state': 'pending_review',
+                'error_message': 'Integration user is not configured for this store.',
+                'last_processed_at': fields.Datetime.now(),
+            })
+            return
+
+        self.write({
+            'state': 'captured',
+            'error_message': False,
+            'warning_message': False,
+        })
+
+        try:
+            with self.env.cr.savepoint():
+                order_as_integration_user = self.with_user(integration_user).with_company(
+                    store.company_id
+                )
+                order_as_integration_user._match_or_create_customer()
+                order_as_integration_user._match_products()
+
+                if order_as_integration_user.state == 'ready':
+                    order_as_integration_user.action_create_sale_order()
+        except Exception as exc:
+            self.write({
+                'state': 'failed',
+                'error_message': str(exc)[:1000],
+                'last_processed_at': fields.Datetime.now(),
+            })
+
+        # UI Feedback
+        if self.state == 'imported':
+            return self.action_open_sale_order()
+        if self.state in ('pending_mapping', 'pending_review', 'failed'):
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': 'Retry Finished',
+                    'message': f'Order is still in {self.state} state. Error: {self.error_message}',
+                    'type': 'warning',
+                    'sticky': False,
+                }
+            }
 
     def _find_existing_sale_order(self):
         self.ensure_one()
@@ -599,7 +712,7 @@ class EcommerceExternalOrder(models.Model):
         for line in self.line_ids:
             if line.state != 'mapped' or not line.product_id:
                 unmapped_lines.append(line.external_line_id or str(line.id))
-        
+
         if unmapped_lines:
             self.write({
                 'state': 'pending_mapping',
@@ -690,15 +803,15 @@ class EcommerceExternalOrder(models.Model):
                     'error_message':      False,
                     'last_processed_at':  fields.Datetime.now(),
                 }
-                
+
                 all_new_warnings = line_warnings + ([shipping_warning] if shipping_warning else [])
                 if all_new_warnings:
                     existing = self.warning_message or ''
                     combined = f"{existing}\n" + "\n".join(all_new_warnings) if existing else "\n".join(all_new_warnings)
                     write_vals['warning_message'] = combined.strip()
-                
+
                 self.write(write_vals)
-                
+
         except Exception as e:
             self.write({
                 'state':              'failed',
@@ -772,7 +885,7 @@ class EcommerceExternalOrder(models.Model):
 
     def _create_discount_note_line(self, sale_order, total_product_subtotal):
         strategy = self.store_id.discount_strategy
-        
+
         if strategy != 'note_only' and not (strategy == 'proportional' and total_product_subtotal == 0):
             return
 
