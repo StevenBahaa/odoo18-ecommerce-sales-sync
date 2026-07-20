@@ -149,6 +149,8 @@
                             <field name="payment_status"/>
                             <field name="fulfillment_status"/>
                             <field name="last_processed_at"/>
+                            <field name="last_external_update_at"/>
+                            <field name="last_external_update_event_id"/>
                             <field name="sale_order_id"/>
                         </group>
                     </group>

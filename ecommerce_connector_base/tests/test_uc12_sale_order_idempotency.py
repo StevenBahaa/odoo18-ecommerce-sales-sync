@@ -9,7 +9,7 @@ class TestUC12SaleOrderIdempotency(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.company = cls.env.company
-        
+
         cls.store = cls.env['ecommerce.store'].create({
             'name': 'Test Store',
             'platform': 'manual_mock',
@@ -18,7 +18,7 @@ class TestUC12SaleOrderIdempotency(TransactionCase):
             'order_import_policy': 'manual_validate',
             'stock_sync_policy': 'readiness_only',
         })
-        
+
         cls.partner = cls.env['res.partner'].create({
             'name': 'Test Customer',
         })
@@ -53,11 +53,11 @@ class TestUC12SaleOrderIdempotency(TransactionCase):
             'ecommerce_external_reference': 'TEST-SO-1',
         }
         so1 = self.env['sale.order'].create(so_vals)
-        
+
         with odoo.tools.mute_logger('odoo.sql_db'), self.assertRaises(IntegrityError):
             with self.env.cr.savepoint():
                 self.env['sale.order'].create(so_vals)
-                
+
         # Normal SO with no ecommerce link should not conflict
         so_normal_1 = self.env['sale.order'].create({'partner_id': self.partner.id})
         so_normal_2 = self.env['sale.order'].create({'partner_id': self.partner.id})
@@ -67,13 +67,13 @@ class TestUC12SaleOrderIdempotency(TransactionCase):
     def test_02_idempotent_creation(self):
         """Test action_create_sale_order called twice returns the same SO."""
         ext_order = self._create_ready_external_order('EXT-100')
-        
+
         # First call creates the SO
         res1 = ext_order.action_create_sale_order()
         self.assertEqual(ext_order.state, 'imported')
         so_id = ext_order.sale_order_id.id
         self.assertTrue(so_id)
-        
+
         # Second call returns the action to open it
         res2 = ext_order.action_create_sale_order()
         self.assertEqual(res2['res_id'], so_id)
@@ -81,7 +81,7 @@ class TestUC12SaleOrderIdempotency(TransactionCase):
     def test_03_concurrent_race_recovery(self):
         """Test that IntegrityError triggers a search and link, preventing crash."""
         ext_order = self._create_ready_external_order('EXT-101')
-        
+
         # Simulate race condition: another transaction created the SO first
         so_vals = {
             'partner_id': self.partner.id,
@@ -89,7 +89,7 @@ class TestUC12SaleOrderIdempotency(TransactionCase):
             'ecommerce_external_reference': ext_order.external_order_id,
         }
         existing_so = self.env['sale.order'].create(so_vals)
-        
+
         # Bypass the initial lookup once to simulate another transaction winning
         # after our pre-check but before sale.order.create().
         with patch.object(
@@ -100,7 +100,7 @@ class TestUC12SaleOrderIdempotency(TransactionCase):
         ):
             with odoo.tools.mute_logger('odoo.sql_db'):
                 res = ext_order.action_create_sale_order()
-        
+
         self.assertEqual(ext_order.state, 'imported')
         self.assertEqual(ext_order.sale_order_id.id, existing_so.id)
         self.assertEqual(res['res_id'], existing_so.id)

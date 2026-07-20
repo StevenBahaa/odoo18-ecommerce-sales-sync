@@ -10,7 +10,7 @@ class ResPartner(models.Model):
         store=True,
         index=True,
     )
-    
+
     ecommerce_normalized_mobile = fields.Char(
         string="E-commerce Normalized Mobile",
         compute="_compute_ecommerce_normalized_phones",

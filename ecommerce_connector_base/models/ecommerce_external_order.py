@@ -210,6 +210,17 @@ class EcommerceExternalOrder(models.Model):
         string="Last Processed At",
         copy=False,
     )
+    last_external_update_at = fields.Datetime(
+        string="Last External Update",
+        readonly=True,
+        tracking=True,
+        copy=False,
+    )
+    last_external_update_event_id = fields.Char(
+        string="Last External Update Event ID",
+        readonly=True,
+        copy=False,
+    )
     retry_count = fields.Integer(
         string="Retry Count",
         default=0,

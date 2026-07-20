@@ -1,6 +1,6 @@
 # Current Status
 
-Snapshot date: **2026-07-19**
+Snapshot date: **2026-07-19 (updated)**
 Evidence: current <code>develop</code> branch, implementation, targeted tests, Git history, and local <code>PROJECT_PLAN.md</code>.
 
 ## Completed features
@@ -21,25 +21,25 @@ Evidence: current <code>develop</code> branch, implementation, targeted tests, G
 | UC-11 | Sale-order creation | Validated staged import, shipping/discount handling. |
 | UC-12 | Duplicate protection/idempotency | SQL uniqueness, lookup/link helpers, race recovery, tests. |
 | UC-13 | Error queue/manual retry | Queue action, retry audit history, guarded retry behavior, tests. |
+| UC-14 | External order status updates | Partial-update mapper, watermark ordering, row-lock serialization, safe mirroring to sale order, 12 focused tests. |
 
-UC-13 is merged into <code>develop</code> at merge commit <code>d5d99bc</code>; feature implementation commit <code>af6bbbd</code>.
+UC-14 implementation validated 2026-07-19: 12/12 tests passed, UC-12/13 regression clean.
 
 ## Features in progress
 
-No UC implementation is currently in progress. UC-14 is the next planned target but has not started.
+No UC implementation is currently in progress. UC-15 is the next planned target.
 
 ## Known gaps and technical debt
 
 | Priority | Item | Impact / recommended handling |
 | --- | --- | --- |
-| High | Order updates are deferred | Update/cancel/payment/order-state changes are not synchronized. Implement UC-14 before claiming lifecycle sync. |
 | High | Live OAuth/API is deferred | Token fields exist, but authorization ingest, refresh, and outbound API calls are UC-15 through UC-17 work. |
-| Medium | Documentation drift | README says UC-12 is current and TEST_CASES lacks UC-13. Refresh them in a documentation/release task. |
+| Medium | Documentation drift | README says UC-12 is current and TEST_CASES lacks UC-13/14. Refresh them in a documentation/release task. |
 | Medium | No CI/lint/formatting configuration | Regression checks require local Odoo commands and deliberate review. |
-| Medium | Test coverage is selective | Existing focused tests cover UC-12/13; controller/security/mapping coverage needs expansion. |
+| Medium | Test coverage is selective | Focused tests cover UC-12/13/14; controller/security/mapping coverage needs expansion. |
 | Medium | Deployment runbook absent | TLS, proxy, workers, backups, monitoring, and production configuration need investigation. |
 | Low | README formatting | An unmatched Markdown fence appears around the integration-user section. |
-| Low | Test fixture realism | One Salla retry test uses Odoo admin as integration user; production guidance requires a dedicated technical user. |
+| Low | Test fixture realism | UC-12/13 retry tests use Odoo admin as integration user; production guidance requires a dedicated technical user. |
 
 ## Known bugs
 
@@ -57,15 +57,14 @@ Real Salla payload compatibility, especially product identifier shapes beyond th
 
 ## Prioritized next work
 
-1. UC-14: external order status updates and event ordering.
-2. UC-15: secure OAuth authorization handling.
-3. UC-16: token refresh lock/expiry behavior.
-4. UC-17: Salla API client and optional enrichment.
+1. UC-15: secure OAuth authorization handling.
+2. UC-16: token refresh lock/expiry behavior.
+3. UC-17: Salla API client and optional enrichment.
 
 Lower-priority planned work: UC-18 stock readiness, UC-19 reporting, UC-20 demo bootstrap/scripts, UC-21 release polish, CI, deployment documentation, broader tests, and README/test-case refresh.
 
 ## Current blockers
 
-No repository-level code blocker for UC-14 is identified.
+No repository-level code blocker for UC-15 is identified.
 
 Live OAuth/API work may depend on Salla developer credentials, payload documentation, and a demo/client store. Exact external account prerequisites **need further investigation**.

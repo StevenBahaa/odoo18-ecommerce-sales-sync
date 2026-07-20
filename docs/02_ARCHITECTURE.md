@@ -103,7 +103,7 @@ stateDiagram-v2
     captured --> cancelled: future lifecycle handling
 ~~~
 
-The current selection also contains <code>draft</code>, <code>duplicate</code>, and <code>cancelled</code>. Not all transitions are implemented; order-update/cancellation behavior is deferred to UC-14.
+The current selection also contains <code>draft</code>, <code>duplicate</code>, and <code>cancelled</code>. Not all transitions are implemented; cancellation behavior is deferred to future work.
 
 ## Data model and constraints
 
@@ -127,6 +127,14 @@ Duplicate protection has two layers:
 2. Database constraint: the extended sale-order model has a unique store/external-reference constraint.
 
 Creation handles an <code>IntegrityError</code> inside a savepoint, re-queries the winning order, and links it. This covers duplicate deliveries and concurrent imports. The pre-upgrade inspection script is <code>scripts/check_uc12_sale_order_duplicates.sql</code>.
+
+## External update ordering (UC-14)
+
+The `order.updated` handler applies a per-staged-order watermark strategy rather than a global event uniqueness constraint. Before comparing or writing, the handler acquires a PostgreSQL `FOR UPDATE NOWAIT` row lock on the staged order row, then reloads `last_external_update_at` and `last_external_update_event_id`. All comparison and write operations occur in a single savepoint-backed transaction.
+
+Only fields explicitly present and valid in the update payload are written. Omitted fields are not included in the write dictionary and cannot be cleared. Monetary updates require the payload to declare a currency that matches the staged order's existing currency; a mismatch parks the entire event without mutating any field.
+
+Status fields accepted from an `order.updated` payload are mirrored to the linked `sale.order`'s connector informational fields (`ecommerce_payment_status`, `ecommerce_fulfillment_status`) when the staged order is already imported. No Odoo workflow, financial, delivery, or line field on the sale order is written by an update event. See ADR-008 for the full ordering decision.
 
 ## Processing boundaries
 
@@ -172,7 +180,6 @@ The controller uses narrow privileged operations for store lookup/configuration/
 
 | Area | Evidence | Status |
 | --- | --- | --- |
-| Order updates | Salla handler records a UC-14 deferred message | Not implemented |
 | OAuth authorization | Store token fields and authorize sample payload | UC-15 |
 | Token refresh | Store lock/timestamp fields | UC-16 |
 | Live Salla API client | Abstract client raises deferred error | UC-17 |

@@ -191,3 +191,47 @@ Retry must be carefully permissioned and auditable.
 ### Future implications
 
 Automated retries, if added, need separate policy/backoff/observability decisions.
+
+## ADR-008 — External update ordering with per-order watermark and row lock
+
+### Context
+
+Salla `order.updated` webhooks can arrive out of order, be duplicated, or contain only a partial set of fields. Applying them naively risks overwriting newer data with stale values or clearing fields that were not included in the update.
+
+### Decision
+
+UC-14 implements a per-staged-order update watermark (`last_external_update_at`, `last_external_update_event_id`) rather than a global webhook-event uniqueness constraint. Before comparing or writing, the handler acquires a PostgreSQL `FOR UPDATE NOWAIT` row lock on the staged order, reloads the watermark fields, and applies the ordering matrix:
+
+| Scenario | Outcome |
+| --- | --- |
+| No staged order | `pending_review`; no mutation |
+| Missing/invalid event time | `pending_review`; no mutation |
+| No prior watermark | Apply update and set watermark |
+| Incoming time newer than watermark | Apply update and advance watermark |
+| Incoming time older than watermark | `pending_review`; no mutation |
+| Same time and same event ID | `duplicate`; no mutation |
+| Same time but different/missing event ID | `pending_review`; no mutation |
+
+A dedicated partial-update mapper (`_parse_partial_update_payload`) emits only fields that were explicitly present and valid in the payload. Omitted fields produce no key in the result dictionary and are therefore never written, preventing accidental clears.
+
+### Alternatives considered
+
+- Global `UNIQUE(external_event_id)` constraint on `ecommerce.webhook.event`: simpler for true duplicates but cannot detect stale out-of-order events or partially-distinct payloads.
+- Timestamp-only comparison without row lock: susceptible to concurrent update races.
+- Accepting all updates and letting the UI resolve conflicts: destroys audit integrity.
+
+### Reasoning
+
+A per-order watermark is the minimal addition that closes stale-update and concurrent-delivery races without a global migration. The row lock ensures that concurrent deliveries for the same order serialize rather than race to compare the same pre-lock watermark value.
+
+### Tradeoffs
+
+- Two new nullable fields are required on `ecommerce.external.order`; both addons must be upgraded together.
+- `FOR UPDATE NOWAIT` will raise an exception if another transaction already holds the lock; the processing gate records the failure rather than silently dropping the event.
+- The correctness of ordering depends on Salla's event timestamps representing emission order; this assumption is stated explicitly and treated as unverified for production.
+
+### Future implications
+
+- If a global webhook-event uniqueness constraint is added later, it can complement (not replace) the per-order watermark.
+- The watermark pattern can be reused by future platform addons that need ordered update processing.
+- Do not remove the row lock when moving to background/queue processing; the lock scope must remain per staged order.

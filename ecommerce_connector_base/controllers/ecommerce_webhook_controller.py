@@ -37,10 +37,10 @@ class EcommerceWebhookController(http.Controller):
 
 
     @http.route(
-        '/ecommerce/webhook/<string:platform>/<string:store_token>', 
-        type='http', 
-        auth='public', 
-        methods=['POST'], 
+        '/ecommerce/webhook/<string:platform>/<string:store_token>',
+        type='http',
+        auth='public',
+        methods=['POST'],
         csrf=False
     )
     def receive_webhook(self, platform, store_token, **kwargs):

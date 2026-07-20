@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
     <data noupdate="1">
-    
+
         <record id="module_category_ecommerce_connector" model="ir.module.category">
             <field name="name">E-commerce Connector</field>
             <field name="description">Manage e-commerce sales synchronization and connector configuration.</field>
@@ -23,6 +23,6 @@
             <field name="category_id" ref="ecommerce_connector_base.module_category_ecommerce_connector"/>
             <field name="implied_ids" eval="[(4, ref('ecommerce_connector_base.group_ecommerce_connector_manager'))]"/>
         </record>
-        
+
     </data>
 </odoo>
