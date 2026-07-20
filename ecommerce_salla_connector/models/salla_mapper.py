@@ -84,6 +84,99 @@ class EcommerceSallaMapper(models.AbstractModel):
             "lines": items,
         }
 
+    def _parse_partial_update_payload(self, payload):
+        if not isinstance(payload, dict):
+            raise UserError(_("Salla order payload must be a JSON object."))
+
+        event_type = self._get_event_type(payload)
+        if event_type != "order.updated":
+            raise UserError(
+                _("Unsupported Salla order update event type: %s") % (event_type or "unknown")
+            )
+
+        data = payload.get("data")
+        if not isinstance(data, dict):
+            raise UserError(_("Salla order payload is missing a valid data object."))
+
+        external_order_id = self._extract_order_id(data)
+        if not external_order_id:
+            raise UserError(_("Salla order payload is missing the external order ID."))
+
+        event_time_str = data.get("updated_at") or data.get("created_at") or payload.get("created_at")
+        external_event_time = self._parse_datetime(event_time_str)
+
+        amounts = data.get("amounts") if isinstance(data.get("amounts"), dict) else {}
+
+        currency_code = (
+            data.get("currency")
+            or self._extract_amount_currency(amounts.get("total"))
+            or self._extract_amount_currency(amounts.get("shipping_cost"))
+            or False
+        )
+
+        update_vals = {}
+
+        def _get_strict_amount(source_dict, key):
+            if not isinstance(source_dict, dict):
+                return None
+            if key not in source_dict:
+                return None
+            val = source_dict[key]
+            if isinstance(val, dict):
+                # If amount is explicitly null inside the dict, we still fail it below
+                val = val.get("amount") if "amount" in val else val.get("value")
+            
+            if val is None:
+                raise UserError(_("Malformed explicit null amount for field %s") % key)
+            try:
+                return float(val)
+            except (TypeError, ValueError):
+                raise UserError(_("Malformed amount for field %s") % key)
+
+        def _get_strict_status(data_dict, key):
+            if key not in data_dict:
+                return None
+            val = data_dict[key]
+            if not isinstance(val, str) or not val.strip():
+                raise UserError(_("Malformed status for field %s: must be a non-blank string") % key)
+            return val.strip()
+
+        payment_status = _get_strict_status(data, "payment_status")
+        if payment_status is not None:
+            update_vals["payment_status"] = payment_status
+
+        fulfillment_status = _get_strict_status(data, "fulfillment_status")
+        if fulfillment_status is not None:
+            update_vals["fulfillment_status"] = fulfillment_status
+
+        external_status = _get_strict_status(data, "status")
+        if external_status is not None:
+            update_vals["external_status"] = external_status
+
+        tot = _get_strict_amount(amounts, "total")
+        if tot is not None:
+            update_vals["total_amount"] = tot
+
+        ship = _get_strict_amount(amounts, "shipping_cost")
+        if ship is not None:
+            update_vals["shipping_amount"] = ship
+
+        disc = _get_strict_amount(amounts, "discounts")
+        if disc is not None:
+            update_vals["discount_amount"] = disc
+
+        tax = _get_strict_amount(amounts, "tax")
+        if tax is not None:
+            update_vals["tax_amount"] = tax
+
+        return {
+            "external_order_id": str(external_order_id),
+            "external_event_time": external_event_time,
+            "currency_code": currency_code,
+            "update_vals": update_vals,
+            "event_id": str(payload.get("event_id") or payload.get("uuid") or payload.get("id") or "").strip(),
+        }
+
     def _parse_authorize_payload(self, payload):
         raise UserError(
             _("Salla authorization payload handling will be implemented in UC-15.")

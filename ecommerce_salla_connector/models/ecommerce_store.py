@@ -8,7 +8,7 @@ class EcommerceStore(models.Model):
         selection_add=[("salla", "Salla")],
         ondelete={
             "salla": "set default",
-        },  
+        },
         index=True,
         tracking=True,
         help="Technical platform handled by this store. Salla will be added by the Salla connector module."

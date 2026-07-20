@@ -60,4 +60,3 @@ Verify that the winning sale order is re-found, linked, and returned without a u
 ### TC-UC12-7 — Cross-store external references
 Use the same external reference for two different stores.
 Verify that each store can have one sale order and that the stores do not conflict with each other.
-

@@ -11,20 +11,18 @@ This combines the local UC plan with code currently present on <code>develop</co
 | UC-09–UC-11 | Store policies, Mock Lab, sale-order creation. |
 | UC-12 | Database-backed duplicate protection and idempotent import. |
 | UC-13 | Error queue, retry audit trail, manual retry via standard import path. |
+| UC-14 | External order status updates: partial-update mapper, watermark ordering, row-lock serialization, status mirroring, 12 tests. |
 
 ## Next
 
-### UC-14 — External Order Status Updates and Event Ordering
+### UC-15 — Secure OAuth Authorization Handling
 
-Implement Salla order-update handling for known staged orders while preserving safe behavior for unknown or out-of-order events.
+Implement Salla OAuth authorization token ingest and storage. Expected scope:
 
-Expected focus from the local plan:
-
-- parse supported status/update fields;
-- link updates to the correct staged order;
-- handle cancellation, payment, fulfilment, products, and totals safely;
-- record unknown/unsafe updates for review rather than destructively changing records;
-- define ordering/idempotency rules and focused tests.
+- receive and validate the authorization payload;
+- securely store the access and refresh tokens;
+- update the store with token expiry/scope metadata;
+- guard ingest behind the integration-manager group.
 
 ## Future
 

@@ -17,7 +17,7 @@ class TestUC12WebhookIdempotency(TransactionCase):
                 (4, cls.env.ref('ecommerce_connector_base.group_ecommerce_integration_manager').id),
             ],
         })
-        
+
         cls.store = cls.env['ecommerce.store'].create({
             'name': 'Test Salla Store',
             'platform': 'salla',
@@ -35,7 +35,7 @@ class TestUC12WebhookIdempotency(TransactionCase):
             'default_code': 'TEST-SKU',
             'type': 'consu',
         })
-        
+
         cls.sample_payload = json.dumps({
             "event": "order.created",
             "merchant": "12345",
@@ -76,19 +76,19 @@ class TestUC12WebhookIdempotency(TransactionCase):
         event1._apply_uc03_processing_gate()
         self.assertEqual(event1.processing_status, 'processed')
         self.assertTrue(event1.related_external_order_id.id)
-        
+
         ext_order = event1.related_external_order_id
         self.assertEqual(ext_order.state, 'ready')
         ext_order.action_create_sale_order()
         self.assertTrue(ext_order.sale_order_id)
-        
+
         # Second webhook (duplicate)
         event2 = self.env['ecommerce.webhook.event'].create({
             'store_id': self.store.id,
             'raw_payload': self.sample_payload,
         })
         event2._apply_uc03_processing_gate()
-        
+
         self.assertEqual(event2.processing_status, 'duplicate')
         self.assertEqual(event2.related_external_order_id.id, ext_order.id)
         self.assertEqual(event2.related_partner_id.id, ext_order.partner_id.id)
