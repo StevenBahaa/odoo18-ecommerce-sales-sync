@@ -9,6 +9,7 @@
     "data": [
         "security/ir.model.access.csv",
         "views/salla_store_views.xml",
+        "views/ecommerce_webhook_event_views.xml",
         "views/ecommerce_mock_payload_wizard_views.xml",
     ],
     "installable": True,

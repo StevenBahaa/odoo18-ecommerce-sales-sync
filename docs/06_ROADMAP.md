@@ -11,24 +11,22 @@ This combines the local UC plan with code currently present on <code>develop</co
 | UC-09–UC-11 | Store policies, Mock Lab, sale-order creation. |
 | UC-12 | Database-backed duplicate protection and idempotent import. |
 | UC-13 | Error queue, retry audit trail, manual retry via standard import path. |
-| UC-14 | External order status updates: partial-update mapper, watermark ordering, row-lock serialization, status mirroring, 12 tests. |
+| UC-14 | External order status updates with watermark ordering and row-lock serialization. |
+| UC-15 | Salla OAuth authorization token ingest, replay ordering, integration-user guards, and redacted audit payloads. |
 
 ## Next
 
-### UC-15 — Secure OAuth Authorization Handling
+### UC-16 — Token Refresh Locking/Expiry Warnings
 
-Implement Salla OAuth authorization token ingest and storage. Expected scope:
-
-- receive and validate the authorization payload;
-- securely store the access and refresh tokens;
-- update the store with token expiry/scope metadata;
-- guard ingest behind the integration-manager group.
+Implement scheduled or on-demand token refresh for Salla stores. Expected scope:
+- Lock store row to prevent concurrent token refreshes
+- Use refresh_token to request new tokens
+- Schedule warnings for expiring tokens
 
 ## Future
 
 | UC | Theme | Current evidence |
 | --- | --- | --- |
-| UC-15 | OAuth authorization and secure token ingest | Store token fields and authorize mock payload exist; parser defers. |
 | UC-16 | Token refresh locking/expiry warnings | Lock/timestamp fields exist; no refresh workflow. |
 | UC-17 | Salla API client and optional enrichment | Abstract client boundary exists; live calls defer. |
 | UC-18 | Stock readiness | Store policy exists; no stock behavior. |

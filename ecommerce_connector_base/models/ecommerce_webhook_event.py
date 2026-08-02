@@ -250,7 +250,7 @@ class EcommerceWebhookEvent(models.Model):
         self._apply_uc03_processing_gate()
         return True
 
-    def _apply_uc03_processing_gate(self):
+    def _apply_uc03_processing_gate(self, processing_payload=None):
         now = fields.Datetime.now()
 
         for event in self:
@@ -271,7 +271,7 @@ class EcommerceWebhookEvent(models.Model):
             try:
                 event.with_user(integration_user).with_company(
                     store.company_id
-                )._process_business_event()
+                )._process_business_event(processing_payload=processing_payload)
             except Exception as exc:
                 event.sudo().write({
                     "processing_status": "failed",
@@ -279,7 +279,7 @@ class EcommerceWebhookEvent(models.Model):
                     "processed_at": fields.Datetime.now(),
                 })
 
-    def _process_business_event(self):
+    def _process_business_event(self, processing_payload=None):
         self.write({
             "processing_status": "processed",
             "error_message": False,

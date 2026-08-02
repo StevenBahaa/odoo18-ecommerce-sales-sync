@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_ecommerce_webhook_event_form_salla" model="ir.ui.view">
+        <field name="name">ecommerce.webhook.event.form.salla</field>
+        <field name="model">ecommerce.webhook.event</field>
+        <field name="inherit_id" ref="ecommerce_connector_base.view_ecommerce_webhook_event_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_retry_processing']" position="attributes">
+                <attribute name="invisible">processing_status not in ('failed', 'pending_review') or event_type == 'app.store.authorize'</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>

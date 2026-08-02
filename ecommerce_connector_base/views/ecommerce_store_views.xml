@@ -137,6 +137,14 @@
                                     <field name="refresh_token_expires_at"/>
                                 </group>
                             </group>
+                            <group>
+                                <group string="OAuth Metadata">
+                                    <field name="oauth_scope" readonly="1"/>
+                                    <field name="oauth_token_type" readonly="1"/>
+                                    <field name="last_oauth_authorized_at" readonly="1"/>
+                                    <field name="last_oauth_authorize_event_id" readonly="1"/>
+                                </group>
+                            </group>
                         </page>
 
                         <page string="Integration Safety" groups="ecommerce_connector_base.group_ecommerce_integration_manager">

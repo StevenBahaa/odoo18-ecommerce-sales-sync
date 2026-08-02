@@ -1,8 +1,9 @@
 import json
+from datetime import timedelta, timezone
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
-from odoo.modules.module import get_module_resource
+from odoo.tools.misc import file_path
 
 
 class EcommerceMockPayloadWizard(models.TransientModel):
@@ -100,7 +101,7 @@ class EcommerceMockPayloadWizard(models.TransientModel):
             "http_status_returned": 200,
         })
 
-        event._apply_uc03_processing_gate()
+        event._apply_uc03_processing_gate(processing_payload=payload)
 
         self.created_event_id = event.id
 
@@ -139,17 +140,37 @@ class EcommerceMockPayloadWizard(models.TransientModel):
         if not filename:
             return "{}"
 
-        file_path = get_module_resource(
-            "ecommerce_salla_connector",
-            "sample_payloads",
-            filename,
-        )
-
-        if not file_path:
+        try:
+            sample_file_path = file_path(
+                "ecommerce_salla_connector/sample_payloads/%s" % filename
+            )
+        except FileNotFoundError:
             raise UserError(_("Sample payload file was not found: %s") % filename)
 
-        with open(file_path, "r", encoding="utf-8") as payload_file:
-            return payload_file.read()
+        with open(sample_file_path, "r", encoding="utf-8") as payload_file:
+            payload_content = payload_file.read()
+
+        if template == "salla_app_store_authorize":
+            return self._refresh_authorize_sample_timestamps(payload_content)
+
+        return payload_content
+
+    def _refresh_authorize_sample_timestamps(self, payload_content):
+        """Keep the bundled mock authorization payload valid when it is loaded."""
+        try:
+            payload = json.loads(payload_content)
+        except json.JSONDecodeError:
+            return payload_content
+
+        if not isinstance(payload, dict) or not isinstance(payload.get("data"), dict):
+            return payload_content
+
+        now = fields.Datetime.now()
+        payload["created_at"] = fields.Datetime.to_string(now)
+        payload["data"]["expires"] = int(
+            (now.replace(tzinfo=timezone.utc) + timedelta(days=14)).timestamp()
+        )
+        return json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
 
     def _prepare_mock_headers(self):
         headers = {

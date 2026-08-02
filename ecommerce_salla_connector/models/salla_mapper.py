@@ -125,7 +125,7 @@ class EcommerceSallaMapper(models.AbstractModel):
             if isinstance(val, dict):
                 # If amount is explicitly null inside the dict, we still fail it below
                 val = val.get("amount") if "amount" in val else val.get("value")
-            
+
             if val is None:
                 raise UserError(_("Malformed explicit null amount for field %s") % key)
             try:
@@ -178,9 +178,101 @@ class EcommerceSallaMapper(models.AbstractModel):
         }
 
     def _parse_authorize_payload(self, payload):
-        raise UserError(
-            _("Salla authorization payload handling will be implemented in UC-15.")
-        )
+        from dateutil.relativedelta import relativedelta
+
+        if not isinstance(payload, dict):
+            raise UserError(_("Authorization payload must be a JSON object."))
+
+        event_type = self._get_event_type(payload)
+        if event_type != "app.store.authorize":
+            raise UserError(_("Unsupported authorization event type: %s") % (event_type or "unknown"))
+
+        merchant = payload.get("merchant")
+        if isinstance(merchant, dict):
+            merchant = merchant.get("id")
+        merchant_str = str(merchant or "").strip()
+        if not merchant_str:
+            raise UserError(_("Missing or empty merchant identifier."))
+
+        created_at_str = payload.get("created_at")
+        if not created_at_str:
+            raise UserError(_("Missing created_at timestamp."))
+
+        authorized_at_str = self._parse_datetime(created_at_str)
+        if not authorized_at_str:
+            raise UserError(_("Invalid created_at timestamp format."))
+
+        authorized_at = fields.Datetime.from_string(authorized_at_str)
+
+        data = payload.get("data")
+        if not isinstance(data, dict):
+            raise UserError(_("Missing or invalid data object in payload."))
+
+        access_token_raw = data.get("access_token")
+        if not isinstance(access_token_raw, str):
+            raise UserError(_("Missing or invalid access_token."))
+        access_token = access_token_raw.strip()
+
+        refresh_token_raw = data.get("refresh_token")
+        if not isinstance(refresh_token_raw, str):
+            raise UserError(_("Missing or invalid refresh_token."))
+        refresh_token = refresh_token_raw.strip()
+
+        if not access_token or access_token == "[REDACTED]":
+            raise UserError(_("Missing or redacted access_token."))
+
+        if not refresh_token or refresh_token == "[REDACTED]":
+            raise UserError(_("Missing or redacted refresh_token."))
+
+        scope_raw = data.get("scope")
+        if not isinstance(scope_raw, str):
+            raise UserError(_("Missing or invalid scope."))
+        scope = scope_raw.strip()
+
+        if "offline_access" not in scope.split():
+            raise UserError(_("OAuth scope must include offline_access."))
+
+        token_type_raw = data.get("token_type")
+        if not isinstance(token_type_raw, str):
+            raise UserError(_("Missing or invalid token_type."))
+        token_type = token_type_raw.strip().lower()
+
+        if token_type != "bearer":
+            raise UserError(_("OAuth token_type must be bearer."))
+
+        expires = data.get("expires")
+        try:
+            expires_int = int(expires)
+            if expires_int <= 0:
+                raise ValueError
+            access_token_expires_at = datetime.fromtimestamp(expires_int, tz=timezone.utc).replace(tzinfo=None)
+        except (TypeError, ValueError, OSError, OverflowError):
+            raise UserError(_("Invalid expires timestamp."))
+
+        if access_token_expires_at <= authorized_at:
+            raise UserError(_("Access token expires_at must be after authorized_at."))
+
+        if access_token_expires_at <= fields.Datetime.now():
+            raise UserError(_("Access token is already expired."))
+
+        refresh_token_issued_at = authorized_at
+        refresh_token_expires_at = refresh_token_issued_at + relativedelta(months=1)
+
+        external_event_id = str(payload.get("event_id") or payload.get("uuid") or payload.get("id") or "").strip()
+
+        return {
+            "event_type": "app.store.authorize",
+            "merchant_identifier": merchant_str,
+            "authorized_at": fields.Datetime.to_string(authorized_at),
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "access_token_expires_at": fields.Datetime.to_string(access_token_expires_at),
+            "refresh_token_issued_at": fields.Datetime.to_string(refresh_token_issued_at),
+            "refresh_token_expires_at": fields.Datetime.to_string(refresh_token_expires_at),
+            "oauth_scope": scope,
+            "oauth_token_type": token_type,
+            "external_event_id": external_event_id or False,
+        }
 
     def _extract_order_id(self, data):
         return data.get("id") or data.get("order_id") or data.get("order_reference")

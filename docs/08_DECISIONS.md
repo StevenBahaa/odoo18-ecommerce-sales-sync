@@ -235,3 +235,34 @@ A per-order watermark is the minimal addition that closes stale-update and concu
 - If a global webhook-event uniqueness constraint is added later, it can complement (not replace) the per-order watermark.
 - The watermark pattern can be reused by future platform addons that need ordered update processing.
 - Do not remove the row lock when moving to background/queue processing; the lock scope must remain per staged order.
+
+## ADR-009 — Narrow Sudo and Ephemeral Unredacted Payloads for OAuth
+
+### Context
+
+OAuth access tokens and refresh tokens must not be persisted in raw webhook logs where any regular support user can view them, but they still need to be reliably passed from the controller, through the business processing gate, to a protected store update function.
+
+### Decision
+
+1. The controller and Mock Lab parse the unredacted JSON dictionary in memory and pass it to the processing gate (`processing_payload`).
+2. The controller immediately replaces sensitive token fields with `[REDACTED]` before saving the raw payload to the database.
+3. Only the `app.store.authorize` handler uses the unredacted `processing_payload` to parse tokens. All other handlers reload the persisted redacted payload, then the authorization handler calls a specific `_apply_salla_authorization_credentials` helper on `ecommerce_store`.
+4. This helper uses `sudo()` to lock the store, check replay ordering against restricted manager-only OAuth tracking fields, and atomically update the tokens, returning a clean non-sensitive outcome to the event handler.
+
+### Alternatives considered
+
+- Skip webhook event creation for authorization events. (Destroys audit trail of authorization failures).
+- Encrypt tokens in the raw payload log. (Too complex for simple event logging).
+- Execute the whole event processor under `sudo()`. (Violates the principle of least privilege, opening up other operations to privilege escalation).
+
+### Reasoning
+
+Passing the parsed ephemeral dictionary down the call stack prevents secrets from hitting the database in plain text in the `raw_payload` field, while the narrow `sudo()` helper encapsulates the privilege escalation safely, keeping the rest of the webhook processor running as the intended `integration_user_id`.
+
+### Tradeoffs
+
+- Requires passing `processing_payload` explicitly down the inheritance chain, increasing method signatures.
+
+### Future implications
+
+- Token refresh payloads will also use this authorization-only ephemeral passing pattern to update the store securely.

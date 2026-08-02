@@ -171,3 +171,108 @@ Plan and implement UC-15 (Salla OAuth authorization token ingest).
 
 - What is the exact shape of Salla's live `order.updated` payload? Are `data.updated_at` and `data.created_at` always present?
 - Does the `order.authorize` payload shape match the bundled sample exactly, or does it need re-verification before UC-15 starts?
+
+## 2026-08-02 — UC-15 implementation: OAuth authorization
+
+### Goal
+
+Implement Salla `app.store.authorize` handling: parse and validate OAuth payloads, safely lock and ingest tokens, enforce replay ordering, and prevent `raw_payload` credential leakage.
+
+### Work completed
+
+- Created mock payload with valid timestamps.
+- Added `_apply_salla_authorization_credentials()` in Salla store extension to narrow `sudo()` credential writes.
+- Fixed `_ensure_integration_manager()` to respect `self.env.su`.
+- Refactored processing gate to accept `processing_payload` dynamically to decouple in-memory JSON from database `raw_payload`.
+- Implemented `app.store.authorize` and `app.updated` handlers with token unpacking and `FOR UPDATE` lock.
+- Blocked retry logic explicitly for authorization payloads.
+- Added `test_uc15_oauth_authorization.py` covering success, rejection, cross-store, ordering, and retry rules.
+- Documented ADR-009 for the ephemeral processing payload pattern.
+
+### Files modified
+
+- `ecommerce_connector_base/models/ecommerce_store.py` — `_ensure_integration_manager` `sudo` fix.
+- `ecommerce_salla_connector/models/ecommerce_store.py` — `_apply_salla_authorization_credentials` helper.
+- `ecommerce_salla_connector/models/salla_mapper.py` — `_parse_authorize_payload` token and scope validation.
+- `ecommerce_salla_connector/models/ecommerce_webhook_event.py` — Authorization event handler and retry override.
+- `ecommerce_connector_base/models/ecommerce_webhook_event.py` — `processing_payload` propagation.
+- `ecommerce_salla_connector/tests/test_uc15_oauth_authorization.py` — 6 new tests.
+- Documentation under `docs/`.
+
+### Important decisions
+
+- Pass unredacted payload dictionary as `processing_payload` parameter to avoid unredacted secrets touching the `raw_payload` database column (ADR-009).
+- Run store credential writes via narrow `sudo()` helper rather than executing the entire event as a superuser.
+
+### Problems discovered
+
+- `has_group` ignores `self.env.su`, meaning `_ensure_integration_manager` blocked `sudo()` writes for integration users. Fixed by explicitly short-circuiting on `self.env.su`.
+- Salla Mock Lab's bundled timestamp resolved to the exact same second for `created_at` and `expires`, which was correctly rejected by the mapper.
+
+### Risks
+
+- Expiration calculations use `dateutil.relativedelta(months=1)`. Real Salla token logic might differ slightly.
+
+### Validation
+
+- `test_uc15_oauth_authorization.py` passes (6/6).
+
+### Next recommended task
+
+Plan and implement UC-16 (Token Refresh Locking).
+
+## 2026-08-02 — UC-15 review fixes
+
+### Changes
+
+- Restricted transient, unredacted payload use to `app.store.authorize`; all ordinary Salla events now parse the persisted redacted audit payload.
+- Restored normal integration-user access checks for routine webhook-event writes. The credential helper remains the only narrow `sudo()` path.
+- Added regression coverage for nested order-line redaction, missing integration users, newer credential rotation, `app.updated`, direct credential-write denial, and no-transient-data reprocessing.
+- Restored the UC-14 roadmap entry and synchronized the UC-15 status/decision documentation.
+
+### Validation
+
+Ran on 2026-08-02 against `ecommerce_sales_sync_dev`:
+
+```
+python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d ecommerce_sales_sync_dev -u ecommerce_connector_base,ecommerce_salla_connector --test-enable --test-tags /ecommerce_salla_connector:TestUC15OAuthAuthorization --stop-after-init --no-http --log-level=error
+```
+
+Result: **12/12 tests passed, 0 failures, 0 errors.**
+
+## 2026-08-02 — UC-15 test-stability fixes
+
+### Changes
+
+- Made the newer-authorization fixture relative to the current time so it
+  exercises a genuinely newer event.
+- Replaced the unstable local `HttpCase` with deterministic tests of the
+  controller's exact stored-payload redaction helper for valid and malformed
+  bodies. Public-route behavior remains a manual smoke check in this setup.
+- Removed trailing whitespace reported by `git diff --check`.
+
+### Validation
+
+Ran the two UC-15 test classes with `--no-http` against
+`ecommerce_sales_sync_dev`.
+
+Result: **14/14 tests passed, 0 failures, 0 errors.**
+
+## 2026-08-02 — UC-15 final coverage fixes
+
+### Changes
+
+- Mock Lab now refreshes the loaded authorization sample's issue and expiry
+  timestamps, preventing the bundled sample from expiring in 2030.
+- Added regression tests for same-merchant cross-company protection and full
+  OAuth-field rollback when the credential write fails.
+- Replaced the deprecated Odoo sample-resource lookup with the Odoo 18
+  `file_path()` helper.
+
+### Validation
+
+Ran the UC-15 model and controller-helper test classes with `--no-http`.
+The local HTTP server test harness remains unsuitable for public-route testing;
+that route requires the documented manual smoke check.
+
+Result: **17/17 tests passed, 0 failures, 0 errors.**

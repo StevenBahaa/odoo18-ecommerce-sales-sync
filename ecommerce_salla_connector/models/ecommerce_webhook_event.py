@@ -3,26 +3,36 @@ import json
 from psycopg2 import IntegrityError
 
 from odoo import fields, models, _
+from odoo.exceptions import UserError
 
 
 class EcommerceWebhookEvent(models.Model):
     _inherit = "ecommerce.webhook.event"
 
-    def _process_business_event(self):
+    def action_retry_processing(self):
+        self.ensure_one()
+        self._ensure_retry_manager()
+        if self.event_type == "app.store.authorize":
+            raise UserError(_("Authorization events cannot be retried. Re-authorize or resend the event from Salla."))
+        return super().action_retry_processing()
+
+    def _process_business_event(self, processing_payload=None):
         supported_events = self.filtered(
             lambda event: event.store_id.platform in ("salla", "manual_mock")
         )
         other_events = self - supported_events
 
         if other_events:
-            super(EcommerceWebhookEvent, other_events)._process_business_event()
+            super(EcommerceWebhookEvent, other_events)._process_business_event(processing_payload=processing_payload)
 
         for event in supported_events:
-            event._process_salla_or_mock_event()
+            event._process_salla_or_mock_event(processing_payload=processing_payload)
 
-    def _process_salla_or_mock_event(self):
+    def _process_salla_or_mock_event(self, processing_payload=None):
         self.ensure_one()
 
+        # Persisted webhook data is redacted at ingress. Only authorization
+        # credential ingestion may consume the transient, unredacted payload.
         payload = self._load_json_payload()
         mapper = self.env["ecommerce.salla.mapper"]
         event_type = mapper._get_event_type(payload)
@@ -33,6 +43,18 @@ class EcommerceWebhookEvent(models.Model):
 
         if event_type == "order.updated":
             self._process_salla_order_updated(payload)
+            return
+
+        if event_type == "app.store.authorize":
+            self._process_salla_app_store_authorize(processing_payload)
+            return
+
+        if event_type == "app.updated":
+            self.write({
+                "processing_status": "processed",
+                "error_message": False,
+                "processed_at": fields.Datetime.now(),
+            })
             return
 
         self.write({
@@ -309,3 +331,56 @@ class EcommerceWebhookEvent(models.Model):
             ) % currency_code
 
         return currency, False
+
+    def _process_salla_app_store_authorize(self, processing_payload):
+        if not processing_payload:
+            self.write({
+                "processing_status": "pending_review",
+                "error_message": _("Authorization credentials are not retained in the audit payload. Re-authorize or resend the event."),
+                "processed_at": fields.Datetime.now(),
+            })
+            return
+
+        mapper = self.env["ecommerce.salla.mapper"]
+        try:
+            parsed = mapper._parse_authorize_payload(processing_payload)
+        except Exception as e:
+            self.write({
+                "processing_status": "pending_review",
+                "error_message": str(e),
+                "processed_at": fields.Datetime.now(),
+            })
+            return
+
+        store = self.store_id
+        if store.platform != "salla":
+            self.write({
+                "processing_status": "pending_review",
+                "error_message": _("Store platform is not salla."),
+                "processed_at": fields.Datetime.now(),
+            })
+            return
+
+        if not store.store_identifier:
+            self.write({
+                "processing_status": "pending_review",
+                "error_message": _("Store identifier is not configured on the store."),
+                "processed_at": fields.Datetime.now(),
+            })
+            return
+
+        if store.store_identifier != parsed["merchant_identifier"]:
+            self.write({
+                "processing_status": "pending_review",
+                "error_message": _("Payload merchant identifier does not match the route-bound store identifier."),
+                "processed_at": fields.Datetime.now(),
+            })
+            return
+
+        result = store._apply_salla_authorization_credentials(parsed)
+
+        self.write({
+            "processing_status": result.get("status", "failed"),
+            "error_message": result.get("error_message", False),
+            "processed_at": fields.Datetime.now(),
+        })

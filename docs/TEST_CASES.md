@@ -60,3 +60,35 @@ Verify that the winning sale order is re-found, linked, and returned without a u
 ### TC-UC12-7 — Cross-store external references
 Use the same external reference for two different stores.
 Verify that each store can have one sale order and that the stores do not conflict with each other.
+
+## UC-15 — Secure OAuth Authorization Handling
+
+### TC-UC15-1 — Successful Authorization Ingest
+Send a valid `app.store.authorize` payload with `access_token`, `refresh_token`, and `offline_access` scope.
+Verify the raw payload is redacted, but the store's credentials are updated with the correct expiry times.
+
+### TC-UC15-2 — Missing/Redacted Credentials Rejected
+Send a payload with missing tokens or `[REDACTED]` tokens.
+Verify the event fails validation before modifying the store.
+
+### TC-UC15-3 — Missing Offline Access Scope Rejected
+Send a payload missing `offline_access` in the scope string.
+Verify the event fails validation.
+
+### TC-UC15-4 — Cross-Store Merchant ID Protection
+Send an authorization payload where the `merchant` ID does not match the store's `store_identifier`.
+Verify the event is parked as `pending_review` and credentials are not updated.
+
+### TC-UC15-5 — Replay Ordering and Deduplication
+Send an authorization payload with a timestamp older than the store's `last_oauth_authorized_at`.
+Verify it is rejected.
+Send a payload with the exact same timestamp and tokens.
+Verify it is marked as `duplicate`.
+Send a payload with the same timestamp but different tokens.
+Verify it is parked as `pending_review` (ambiguous).
+
+### TC-UC15-6 — Manager-only Retry Bypass
+Attempt to manually retry an `app.store.authorize` event as a standard integration user (non-manager).
+Verify an `AccessError` is raised.
+Attempt to manually retry it as an integration manager.
+Verify a `UserError` is raised, instructing the user to re-authorize from Salla.

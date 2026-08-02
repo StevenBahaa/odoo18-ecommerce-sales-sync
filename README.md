@@ -110,13 +110,13 @@ For example, `01000000000` is not considered equivalent to `+201000000000`.
 Current milestone:
 
 ```text
-UC-12 — Duplicate Protection & Idempotency
+UC-15 — Secure OAuth Authorization Handling
 ```
 
 Next milestone:
 
 ```text
-UC-13 — Error Queue & Manual Retry
+UC-16 — Token Refresh Lock, Expiry Warnings & Credential Safety UX
 ```
 
 Before upgrading `ecommerce_connector_base` after adding the UC-12 sale-order

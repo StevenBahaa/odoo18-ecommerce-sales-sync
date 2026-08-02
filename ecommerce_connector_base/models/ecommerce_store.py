@@ -24,6 +24,10 @@ class EcommerceStore(models.Model):
         "token_refresh_in_progress_at",
         "last_token_refresh_at",
         "integration_user_id",
+        "oauth_scope",
+        "oauth_token_type",
+        "last_oauth_authorized_at",
+        "last_oauth_authorize_event_id",
     }
 
     name = fields.Char(string="Store Name", required=True, tracking=True)
@@ -109,6 +113,16 @@ class EcommerceStore(models.Model):
     refresh_token_expires_at = fields.Datetime(
         groups="ecommerce_connector_base.group_ecommerce_integration_manager",
     )
+
+    oauth_scope = fields.Char(copy=False, groups="ecommerce_connector_base.group_ecommerce_integration_manager")
+    oauth_token_type = fields.Char(copy=False, groups="ecommerce_connector_base.group_ecommerce_integration_manager")
+    last_oauth_authorized_at = fields.Datetime(
+        copy=False,
+        readonly=True,
+        groups="ecommerce_connector_base.group_ecommerce_integration_manager",
+        index=True
+    )
+    last_oauth_authorize_event_id = fields.Char(copy=False, readonly=True, groups="ecommerce_connector_base.group_ecommerce_integration_manager")
 
     token_refresh_lock = fields.Boolean(
         default=False,
@@ -252,6 +266,8 @@ class EcommerceStore(models.Model):
             self._ensure_integration_manager()
 
     def _ensure_integration_manager(self):
+        if self.env.su:
+            return
         if not self.env.user.has_group("ecommerce_connector_base.group_ecommerce_integration_manager"):
            raise AccessError(
                 _(
