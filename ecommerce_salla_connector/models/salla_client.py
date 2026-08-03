@@ -28,3 +28,28 @@ class EcommerceSallaClient(models.AbstractModel):
         raise UserError(
             _("Salla order detail enrichment will be implemented in UC-17.")
         )
+
+    def _refresh_oauth_token(self, client_id, client_secret, refresh_token):
+        import requests
+
+        url = "https://accounts.salla.sa/oauth2/token"
+        data = {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "refresh_token": refresh_token,
+            "grant_type": "refresh_token",
+        }
+
+        try:
+            response = requests.post(url, data=data, timeout=(5, 30), allow_redirects=False)
+            if response.is_redirect:
+                raise UserError(_("Unexpected redirect response from Salla token endpoint."))
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            # Mask the exception because it might contain token strings in URL/params.
+            # Only return the HTTP status code or a safe message.
+            status_code = getattr(e.response, "status_code", "Unknown")
+            raise UserError(_(f"Salla token refresh request failed (Status: {status_code})."))
+        except ValueError:
+            raise UserError(_("Salla returned an invalid JSON response during token refresh."))

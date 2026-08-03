@@ -14,20 +14,21 @@ This combines the local UC plan with code currently present on <code>develop</co
 | UC-14 | External order status updates with watermark ordering and row-lock serialization. |
 | UC-15 | Salla OAuth authorization token ingest, replay ordering, integration-user guards, and redacted audit payloads. |
 
+| UC-16 | Token refresh locking/expiry warnings and credential safety UX. |
+
 ## Next
 
-### UC-16 — Token Refresh Locking/Expiry Warnings
+### UC-17 — Salla API Client and Optional Enrichment
 
-Implement scheduled or on-demand token refresh for Salla stores. Expected scope:
-- Lock store row to prevent concurrent token refreshes
-- Use refresh_token to request new tokens
-- Schedule warnings for expiring tokens
+Implement the live Salla API client to fetch details (e.g. shipping fees, missing customer details). Expected scope:
+- Use refreshed tokens
+- Respect API rate limits
+- Safely handle network and serialization errors
 
 ## Future
 
 | UC | Theme | Current evidence |
 | --- | --- | --- |
-| UC-16 | Token refresh locking/expiry warnings | Lock/timestamp fields exist; no refresh workflow. |
 | UC-17 | Salla API client and optional enrichment | Abstract client boundary exists; live calls defer. |
 | UC-18 | Stock readiness | Store policy exists; no stock behavior. |
 | UC-19 | Reporting | Records support reporting; dedicated reporting absent. |

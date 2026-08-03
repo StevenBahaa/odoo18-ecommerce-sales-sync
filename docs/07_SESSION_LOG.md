@@ -276,3 +276,19 @@ The local HTTP server test harness remains unsuitable for public-route testing;
 that route requires the documented manual smoke check.
 
 Result: **17/17 tests passed, 0 failures, 0 errors.**
+
+## Session 2026-08-02 (UC-16)
+
+**Goal:** Implement UC-16 Token Refresh Lock, Expiry Warnings & Credential Safety UX.
+
+**Actions:**
+- Rewrote ecommerce_salla_connector/models/ecommerce_store.py to add token_refresh_requires_reauthorization, last_token_refresh_error, oauth_credential_state, and oauth_credential_warning.
+- Implemented _claim_salla_refresh_token using dedicated cursor and FOR UPDATE NOWAIT to lock the store for refresh.
+- Implemented _refresh_salla_token orchestrator and strict response parser _parse_salla_refresh_response.
+- Added action_refresh_salla_token button to the Salla store view.
+- Added daily ir.cron task to check for expiring tokens and schedule mail.activity warnings for integration managers.
+- Added 15 focused tests in test_uc16_token_refresh.py (all passed).
+- Updated documentation.
+
+**Outcome:**
+UC-16 successfully implemented and verified. All 15 targeted tests pass.

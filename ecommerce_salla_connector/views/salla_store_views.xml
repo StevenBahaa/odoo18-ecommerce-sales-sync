@@ -7,8 +7,24 @@
         <field name="inherit_id" ref="ecommerce_connector_base.view_ecommerce_store_form"/>
         <field name="arch" type="xml">
 
+            <xpath expr="//header" position="inside">
+                <button
+                    name="action_refresh_salla_token"
+                    string="Refresh Salla Token"
+                    type="object"
+                    class="btn-secondary"
+                    invisible="platform != 'salla' or environment == 'mock' or not active or oauth_credential_state in ('reauthorization_required', 'refresh_in_progress', 'refresh_token_missing', 'refresh_token_expired')"
+                    groups="ecommerce_connector_base.group_ecommerce_integration_manager"
+                    confirm="Salla uses a single-use refresh token that is invalidated immediately upon use. Ensure no other refresh is running. Continue?"
+                />
+            </xpath>
+
             <xpath expr="//notebook" position="inside">
                 <page string="Salla" invisible="platform != 'salla'">
+                    <div class="alert alert-warning" role="alert" invisible="oauth_credential_state == 'healthy'" groups="ecommerce_connector_base.group_ecommerce_integration_manager">
+                        <strong>Attention Required:</strong> <field name="oauth_credential_warning" readonly="1" nolabel="1"/>
+                    </div>
+
                     <group>
                         <group string="Salla Quick Reference">
                             <field name="store_identifier" readonly="1"/>
@@ -16,6 +32,9 @@
                         </group>
 
                         <group string="Token Status" groups="ecommerce_connector_base.group_ecommerce_integration_manager">
+                            <field name="oauth_credential_state" invisible="1"/>
+                            <field name="token_refresh_requires_reauthorization" readonly="1"/>
+                            <field name="last_token_refresh_error" readonly="1" invisible="not last_token_refresh_error"/>
                             <field name="access_token_expires_at" readonly="1"/>
                             <field name="refresh_token_expires_at" readonly="1"/>
                             <field name="last_token_refresh_at" readonly="1"/>

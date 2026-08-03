@@ -105,19 +105,16 @@ Phone normalization in this MVP strictly removes formatting (spaces, dashes, par
 It does not infer country-code equivalence.
 For example, `01000000000` is not considered equivalent to `+201000000000`.
 
-## Development Roadmap
+- Duplicate protection and idempotent external events (UC-12)
+- Error queue and manual retry (UC-13)
+- Order status updates (UC-14)
+- Salla OAuth token ingestion and validation (UC-15)
+- Token refresh locking and expiry warnings (UC-16)
 
-Current milestone:
+## Roadmap
 
-```text
-UC-15 — Secure OAuth Authorization Handling
-```
-
-Next milestone:
-
-```text
-UC-16 — Token Refresh Lock, Expiry Warnings & Credential Safety UX
-```
+Upcoming capabilities:
+- **UC-17**: Salla API Client and Optional Enrichment & Credential Safety UX
 
 Before upgrading `ecommerce_connector_base` after adding the UC-12 sale-order
 uniqueness constraint, run `scripts/check_uc12_sale_order_duplicates.sql` against

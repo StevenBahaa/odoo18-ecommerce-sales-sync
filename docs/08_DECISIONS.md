@@ -266,3 +266,31 @@ Passing the parsed ephemeral dictionary down the call stack prevents secrets fro
 ### Future implications
 
 - Token refresh payloads will also use this authorization-only ephemeral passing pattern to update the store securely.
+
+## ADR-010: Persistent Single-Use Refresh Claims and Safe Ambiguity Handling
+
+**Status:** Accepted (2026-08-02)
+
+### Context
+
+UC-16 implements Salla OAuth token refresh. Salla's refresh tokens are single-use; a successful refresh returns a new access token and a new refresh token, invalidating the old refresh token. If two concurrent requests use the same refresh token, Salla may revoke the credentials entirely. Furthermore, if a refresh request times out or a connection error occurs after the token was sent to Salla, Odoo cannot know whether Salla processed the rotation or not.
+
+### Decision
+
+1.  **Persistent Claim:** A token refresh claim is recorded durably (token_refresh_lock=True) in a dedicated PostgreSQL cursor with a FOR UPDATE NOWAIT row lock before any external network request is made.
+2.  **Strict Safe Ambiguity:** If the refresh request encounters a timeout, connection error, or invalid response, the lock is intentionally not cleared. The store is marked as token_refresh_requires_reauthorization.
+3.  **No Automatic Retry:** Odoo will never automatically retry an ambiguous refresh or allow an operator to "clear the lock" and retry manually, as reusing a potentially consumed token is unsafe.
+4.  **Recovery:** The only way to recover from an ambiguous refresh is to complete a new app.store.authorize flow (UC-15), which securely supersedes the stalled refresh and clears the lock.
+
+### Alternatives considered
+
+-   **"Finally" Lock Release:** Releasing the lock in a finally block or when an error is caught. (Rejected: unsafe for single-use tokens; a timeout could mean Salla consumed the token, so retrying the old token would cause revocation).
+-   **Timeout-based Lock Expiry:** Automatically clearing the lock after 10 minutes. (Rejected: same reason; time does not make the old token reusable).
+
+### Reasoning
+
+For single-use tokens, a distributed transaction gap exists between Odoo's network request and Salla's database commit. Failing closed (requiring reauthorization) is the only mathematically safe response to ambiguity, ensuring we never inadvertently trigger Salla's security revocations.
+
+### Tradeoffs
+
+-   Operators must manually re-authorize the app if a network glitch occurs exactly during token refresh, which is a worse UX than automatic recovery but guarantees credential safety.

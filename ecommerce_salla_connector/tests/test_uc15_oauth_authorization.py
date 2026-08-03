@@ -55,7 +55,7 @@ class TestUC15OAuthAuthorization(TransactionCase):
             "name": "Test Salla Store UC15",
             "platform": "salla",
             "company_id": cls.company.id,
-            "store_identifier": "mock-store-001",
+            "store_identifier": "mock-store-uc15-test-001",
         })
         cls.store.with_user(cls.integration_manager).write({
             "integration_user_id": cls.integration_user.id,
@@ -71,7 +71,7 @@ class TestUC15OAuthAuthorization(TransactionCase):
 
         payload = {
             "event": "app.store.authorize",
-            "merchant": "mock-store-001",
+            "merchant": "mock-store-uc15-test-001",
             "created_at": created_at_str,
             "data": {
                 "access_token": "valid_access_token",
@@ -89,7 +89,7 @@ class TestUC15OAuthAuthorization(TransactionCase):
         payload = self._build_auth_payload()
         parsed = self.mapper._parse_authorize_payload(payload)
 
-        self.assertEqual(parsed["merchant_identifier"], "mock-store-001")
+        self.assertEqual(parsed["merchant_identifier"], "mock-store-uc15-test-001")
         self.assertEqual(parsed["access_token"], "valid_access_token")
         self.assertEqual(parsed["refresh_token"], "valid_refresh_token")
         self.assertEqual(parsed["oauth_scope"], "orders.read offline_access")
@@ -230,7 +230,7 @@ class TestUC15OAuthAuthorization(TransactionCase):
         """Transient credentials must not leak into raw order-line audit JSON."""
         payload = {
             "event": "order.created",
-            "merchant": "mock-store-001",
+            "merchant": "mock-store-uc15-test-001",
             "data": {
                 "id": "UC15-REDACTED-ORDER",
                 "reference_id": "UC15-REDACTED-ORDER",

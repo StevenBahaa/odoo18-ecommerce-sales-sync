@@ -8,6 +8,7 @@
     ],
     "data": [
         "security/ir.model.access.csv",
+        "data/ecommerce_cron.xml",
         "views/salla_store_views.xml",
         "views/ecommerce_webhook_event_views.xml",
         "views/ecommerce_mock_payload_wizard_views.xml",
