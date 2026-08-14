@@ -101,6 +101,8 @@ class EcommerceExternalOrder(models.Model):
         try:
             raw_data = client._fetch_order_details(store, self.external_order_id)
             parsed = mapper._parse_order_details_payload(raw_data)
+        except AccessError:
+            raise
         except (SallaAPIError, UserError) as e:
             safe_err = str(e)
             self.sudo().write({
@@ -224,7 +226,7 @@ class EcommerceExternalOrder(models.Model):
                 "last_salla_enrichment_error": False,
             })
 
-            self.sudo().write(update_vals)
+            self.write(update_vals)
 
         return {
             "type": "ir.actions.client",

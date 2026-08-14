@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import math
 
 from odoo import fields, models, _
 from odoo.exceptions import UserError
@@ -266,28 +267,74 @@ class EcommerceSallaMapper(models.AbstractModel):
             if parsed_date:
                 update_vals["order_date"] = parsed_date
 
-        0
+        # External Status
+        status_val = data.get("status")
+        if isinstance(status_val, dict):
+            status_slug = status_val.get("slug") or status_val.get("name") or status_val.get("id")
+            if status_slug:
+                update_vals["external_status"] = str(status_slug).strip()
+        elif status_val is not None and not isinstance(status_val, (dict, list)):
+            status_str = str(status_val).strip()
+            if status_str:
+                update_vals["external_status"] = status_str
 
-        # Amounts (preserving explicit numeric 0.0)
-        if "total" in amounts or "total" in data:
-            raw_total = amounts.get("total") if "total" in amounts else data.get("total")
-            val = self._extract_amount_value(raw_total)
-            update_vals["total_amount"] = val
+        # Amounts (preserving explicit numeric 0.0, omitting malformed/missing amounts)
+        raw_total = None
+        if isinstance(amounts, dict) and "total" in amounts:
+            raw_total = amounts.get("total")
+        elif "total" in data:
+            raw_total = data.get("total")
 
-        if "shipping_cost" in amounts or "shipping_cost" in data or "shipping" in amounts:
-            raw_ship = amounts.get("shipping_cost") if "shipping_cost" in amounts else (amounts.get("shipping") if "shipping" in amounts else data.get("shipping_cost"))
-            val = self._extract_amount_value(raw_ship)
-            update_vals["shipping_amount"] = val
+        if raw_total is not None:
+            val = self._extract_amount_numeric(raw_total)
+            if val is not None:
+                update_vals["total_amount"] = val
+            else:
+                raise UserError(_("Invalid or malformed total amount in Salla order details."))
 
-        if "discounts" in amounts or "discounts" in data or "discount" in amounts or "discount_amount" in amounts:
-            raw_disc = amounts.get("discounts") if "discounts" in amounts else (amounts.get("discount") if "discount" in amounts else (amounts.get("discount_amount") if "discount_amount" in amounts else data.get("discounts")))
-            val = self._extract_amount_value(raw_disc)
-            update_vals["discount_amount"] = val
+        raw_ship = None
+        if isinstance(amounts, dict):
+            if "shipping_cost" in amounts:
+                raw_ship = amounts.get("shipping_cost")
+            elif "shipping" in amounts:
+                raw_ship = amounts.get("shipping")
+        if raw_ship is None and "shipping_cost" in data:
+            raw_ship = data.get("shipping_cost")
 
-        if "tax" in amounts or "tax" in data or "tax_amount" in amounts or "tax_amount" in data:
-            raw_tax = amounts.get("tax") if "tax" in amounts else (amounts.get("tax_amount") if "tax_amount" in amounts else (data.get("tax") or data.get("tax_amount")))
-            val = self._extract_amount_value(raw_tax)
-            update_vals["tax_amount"] = val
+        if raw_ship is not None:
+            val = self._extract_amount_numeric(raw_ship)
+            if val is not None:
+                update_vals["shipping_amount"] = val
+
+        raw_disc = None
+        if isinstance(amounts, dict):
+            if "discounts" in amounts:
+                raw_disc = amounts.get("discounts")
+            elif "discount" in amounts:
+                raw_disc = amounts.get("discount")
+            elif "discount_amount" in amounts:
+                raw_disc = amounts.get("discount_amount")
+        if raw_disc is None and "discounts" in data:
+            raw_disc = data.get("discounts")
+
+        if raw_disc is not None:
+            val = self._extract_amount_numeric(raw_disc)
+            if val is not None:
+                update_vals["discount_amount"] = val
+
+        raw_tax = None
+        if isinstance(amounts, dict):
+            if "tax" in amounts:
+                raw_tax = amounts.get("tax")
+            elif "tax_amount" in amounts:
+                raw_tax = amounts.get("tax_amount")
+        if raw_tax is None and ("tax" in data or "tax_amount" in data):
+            raw_tax = data.get("tax") if "tax" in data else data.get("tax_amount")
+
+        if raw_tax is not None:
+            val = self._extract_amount_numeric(raw_tax)
+            if val is not None:
+                update_vals["tax_amount"] = val
 
         return {
             "external_order_id": external_order_id_str,
@@ -450,6 +497,48 @@ class EcommerceSallaMapper(models.AbstractModel):
             })
 
         return lines
+
+    def _extract_amount_numeric(self, value):
+        """Extract a numeric float from an amount field or dict.
+
+        Returns float if valid (including explicit 0.0).
+        Returns None if missing, malformed, non-numeric, or boolean.
+        """
+        if value is None or isinstance(value, bool):
+            return None
+
+        if isinstance(value, dict):
+            raw_val = value.get("amount")
+            if raw_val is None:
+                raw_val = value.get("value")
+            if raw_val is None:
+                raw_val = value.get("total")
+            if raw_val is None or isinstance(raw_val, (dict, list, bool)):
+                return None
+            value = raw_val
+
+        if isinstance(value, (int, float)):
+            try:
+                f_val = float(value)
+                if math.isnan(f_val) or math.isinf(f_val):
+                    return None
+                return f_val
+            except (TypeError, ValueError, OverflowError):
+                return None
+
+        if isinstance(value, str):
+            cleaned = value.strip()
+            if not cleaned:
+                return None
+            try:
+                f_val = float(cleaned)
+                if math.isnan(f_val) or math.isinf(f_val):
+                    return None
+                return f_val
+            except (TypeError, ValueError, OverflowError):
+                return None
+
+        return None
 
     def _extract_amount_value(self, value):
         if isinstance(value, dict):

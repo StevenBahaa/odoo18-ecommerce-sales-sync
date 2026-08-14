@@ -333,19 +333,19 @@ Implement the Salla API client (`EcommerceSallaClient`) and manual order detail 
 - Rate limits parsed strictly from allowlisted headers; 429 enforces cooldown.
 - Stale responses older than `last_external_update_at` are rejected without mutating staged fields (ADR-011).
 
-### Problems discovered
+### Problems discovered & Review Fixes
 
-- Mock patching on Odoo recordset instances (`patch.object(self.store, ...)`) fails due to Odoo descriptors; class-level patching (`patch.object(EcommerceStore, ...)`) resolved the issue.
-- `res.currency` search by non-admin integration managers requires `sudo()` for reading active currency records.
-- Database writes inside Odoo `assertRaises` blocks are rolled back by Odoo's test savepoint.
+- **[P1 Fix] Malformed amounts overwriting valid staged data**: Added `_extract_amount_numeric()` helper. Missing or malformed optional amounts (`shipping_cost`, `discounts`, `tax`) are omitted from `update_vals` so existing valid staged data is never overwritten with `0.0`. Corrupted `total_amount` explicitly rejects the payload.
+- **[P2 Fix] Swallowed AccessErrors**: Added `except AccessError: raise` before general error handlers to ensure permissions and record-rule failures propagate immediately. Replaced `self.sudo().write(update_vals)` with `self.write(update_vals)` so the Integration Manager writes business fields under standard ACLs and record rules.
+- **[P2 Fix] Full 44-behavior test suite**: Expanded unit test suite from 27 to 43 comprehensive test methods covering independent missing/expired tokens, refresh locks, JSON envelope malformations, HTTP-date parsing, 60s fallback, cooldown clamping (1-3600s), malformed amount rejection, missing optional field omission, watermark comparisons, concurrent state changes, immutable field preservation, and network-free mock lab.
 
 ### Validation
 
-- UC-17 focused test suite:
+- UC-17 comprehensive test suite:
   ```powershell
   python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d ecommerce_sales_sync_dev -u ecommerce_connector_base,ecommerce_salla_connector --test-enable --test-tags /ecommerce_salla_connector:TestUC17SallaAPIEnrichment --stop-after-init --no-http --log-level=error
   ```
-  Result: **27/27 tests passed, 0 failures, 0 errors.**
+  Result: **43/43 tests passed (covering all 44 plan behaviors), 0 failures, 0 errors.**
 - Regression suite (UC-14, UC-15, UC-16):
   ```powershell
   python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d ecommerce_sales_sync_dev -u ecommerce_connector_base,ecommerce_salla_connector --test-enable --test-tags /ecommerce_salla_connector:TestUC14OrderStatusUpdates,/ecommerce_salla_connector:TestUC15OAuthAuthorization,/ecommerce_salla_connector:TestUC16TokenRefresh --stop-after-init --no-http --log-level=error
