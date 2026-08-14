@@ -177,6 +177,125 @@ class EcommerceSallaMapper(models.AbstractModel):
             "event_id": str(payload.get("event_id") or payload.get("uuid") or payload.get("id") or "").strip(),
         }
 
+    def _parse_order_details_payload(self, data):
+        """Parse and normalize Salla Merchant API Order Details response data.
+
+        Returns a dictionary containing external_order_id, external_updated_at,
+        currency_code, and an allowlisted update_vals dictionary.
+        """
+        if not isinstance(data, dict):
+            raise UserError(_("Salla order details data must be a JSON object."))
+
+        external_order_id = self._extract_order_id(data)
+        if not external_order_id:
+            raise UserError(_("Salla order details payload is missing the external order ID."))
+
+        external_order_id_str = str(external_order_id).strip()
+        if not external_order_id_str:
+            raise UserError(_("Salla order details payload has an empty external order ID."))
+
+        updated_at_str = data.get("updated_at") or data.get("date") or data.get("created_at")
+        external_updated_at = self._parse_datetime(updated_at_str)
+
+        amounts = data.get("amounts") if isinstance(data.get("amounts"), dict) else {}
+
+        currency_code = (
+            data.get("currency")
+            or self._extract_amount_currency(amounts.get("total"))
+            or self._extract_amount_currency(amounts.get("shipping_cost"))
+            or self._extract_amount_currency(data.get("total"))
+            or False
+        )
+        if isinstance(currency_code, str):
+            currency_code = currency_code.strip().upper() or False
+
+        update_vals = {}
+
+        # Reference
+        ref = data.get("reference_id") or data.get("reference") or data.get("order_reference")
+        if ref is not None:
+            ref_str = str(ref).strip()
+            if ref_str:
+                update_vals["external_order_reference"] = ref_str
+        elif external_order_id_str:
+            update_vals["external_order_reference"] = external_order_id_str
+
+        # Customer
+        customer = data.get("customer")
+        if isinstance(customer, dict):
+            # Name
+            cust_name = customer.get("name")
+            if isinstance(cust_name, str) and cust_name.strip():
+                update_vals["customer_name"] = cust_name.strip()
+            else:
+                first = customer.get("first_name") if isinstance(customer.get("first_name"), str) else ""
+                last = customer.get("last_name") if isinstance(customer.get("last_name"), str) else ""
+                full_name = f"{first.strip()} {last.strip()}".strip()
+                if full_name:
+                    update_vals["customer_name"] = full_name
+
+            # Phone
+            raw_phone = customer.get("mobile") or customer.get("phone")
+            if raw_phone is not None and not isinstance(raw_phone, (dict, list)):
+                phone_str = str(raw_phone).strip()
+                if phone_str:
+                    mobile_code = customer.get("mobile_code")
+                    if mobile_code is not None and not isinstance(mobile_code, (dict, list)):
+                        code_str = str(mobile_code).strip().lstrip("+")
+                        clean_phone = phone_str.lstrip("+")
+                        if code_str and not clean_phone.startswith(code_str):
+                            phone_str = f"{code_str}{clean_phone}"
+                    update_vals["customer_phone"] = phone_str
+
+            # Email
+            raw_email = customer.get("email")
+            if isinstance(raw_email, str) and raw_email.strip():
+                update_vals["customer_email"] = raw_email.strip()
+
+            # External Customer ID
+            cust_id = customer.get("id")
+            if cust_id is not None and not isinstance(cust_id, (dict, list)):
+                cust_id_str = str(cust_id).strip()
+                if cust_id_str:
+                    update_vals["external_customer_id"] = cust_id_str
+
+        # Order Date
+        date_str = data.get("date") or data.get("created_at")
+        if date_str:
+            parsed_date = self._parse_datetime(date_str)
+            if parsed_date:
+                update_vals["order_date"] = parsed_date
+
+        0
+
+        # Amounts (preserving explicit numeric 0.0)
+        if "total" in amounts or "total" in data:
+            raw_total = amounts.get("total") if "total" in amounts else data.get("total")
+            val = self._extract_amount_value(raw_total)
+            update_vals["total_amount"] = val
+
+        if "shipping_cost" in amounts or "shipping_cost" in data or "shipping" in amounts:
+            raw_ship = amounts.get("shipping_cost") if "shipping_cost" in amounts else (amounts.get("shipping") if "shipping" in amounts else data.get("shipping_cost"))
+            val = self._extract_amount_value(raw_ship)
+            update_vals["shipping_amount"] = val
+
+        if "discounts" in amounts or "discounts" in data or "discount" in amounts or "discount_amount" in amounts:
+            raw_disc = amounts.get("discounts") if "discounts" in amounts else (amounts.get("discount") if "discount" in amounts else (amounts.get("discount_amount") if "discount_amount" in amounts else data.get("discounts")))
+            val = self._extract_amount_value(raw_disc)
+            update_vals["discount_amount"] = val
+
+        if "tax" in amounts or "tax" in data or "tax_amount" in amounts or "tax_amount" in data:
+            raw_tax = amounts.get("tax") if "tax" in amounts else (amounts.get("tax_amount") if "tax_amount" in amounts else (data.get("tax") or data.get("tax_amount")))
+            val = self._extract_amount_value(raw_tax)
+            update_vals["tax_amount"] = val
+
+        return {
+            "external_order_id": external_order_id_str,
+            "external_updated_at": external_updated_at,
+            "currency_code": currency_code,
+            "update_vals": update_vals,
+        }
+
     def _parse_authorize_payload(self, payload):
         from dateutil.relativedelta import relativedelta
 

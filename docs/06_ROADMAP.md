@@ -15,22 +15,22 @@ This combines the local UC plan with code currently present on <code>develop</co
 | UC-15 | Salla OAuth authorization token ingest, replay ordering, integration-user guards, and redacted audit payloads. |
 
 | UC-16 | Token refresh locking/expiry warnings and credential safety UX. |
+| UC-17 | Salla API client and optional enrichment: GET-only Merchant API client, token preflight with single-use refresh lock, allowlisted Order Details mapper, rate-limit cooldown persistence, and stale/currency row-lock protection. |
 
 ## Next
 
-### UC-17 — Salla API Client and Optional Enrichment
+### UC-18 — Stock Readiness and Inventory Reservation Policies
 
-Implement the live Salla API client to fetch details (e.g. shipping fees, missing customer details). Expected scope:
-- Use refreshed tokens
-- Respect API rate limits
-- Safely handle network and serialization errors
+Implement stock readiness policies and inventory availability checks:
+- Verify physical stock availability in mapped warehouse before sale order confirmation.
+- Configurable store stock policies (auto-reserve, stock warning guard).
+- Prevent overselling and flag staged orders with insufficient stock.
 
 ## Future
 
 | UC | Theme | Current evidence |
 | --- | --- | --- |
-| UC-17 | Salla API client and optional enrichment | Abstract client boundary exists; live calls defer. |
-| UC-18 | Stock readiness | Store policy exists; no stock behavior. |
+| UC-18 | Stock readiness | Store policy field exists; fulfillment logic scheduled. |
 | UC-19 | Reporting | Records support reporting; dedicated reporting absent. |
 | UC-20 | Demo data/scripts | Mock payloads/wizard exist; full demo bootstrap absent. |
 | UC-21 | Documentation/release polish | Durable docs now exist; release work remains. |

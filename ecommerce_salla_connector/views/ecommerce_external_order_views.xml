@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_ecommerce_external_order_form_inherit_salla" model="ir.ui.view">
+        <field name="name">ecommerce.external.order.form.inherit.salla</field>
+        <field name="model">ecommerce.external.order</field>
+        <field name="inherit_id" ref="ecommerce_connector_base.view_ecommerce_external_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <field name="store_environment" invisible="1"/>
+                <button
+                    name="action_enrich_from_salla"
+                    string="Enrich from Salla"
+                    type="object"
+                    class="btn-secondary"
+                    invisible="platform != 'salla' or store_environment == 'mock' or sale_order_id or state not in ('draft', 'captured', 'pending_mapping', 'pending_review', 'failed', 'ready')"
+                    confirm="This will fetch the latest order details directly from Salla API and update staged values. Proceed?"
+                    groups="ecommerce_connector_base.group_ecommerce_integration_manager"
+                />
+            </xpath>
+
+            <xpath expr="//notebook" position="inside">
+                <page string="Salla Enrichment" invisible="platform != 'salla'">
+                    <group>
+                        <group string="Enrichment Status">
+                            <field name="salla_enrichment_count"/>
+                            <field name="last_salla_enriched_at"/>
+                            <field name="last_salla_enriched_by_id"/>
+                            <field name="last_salla_enrichment_status"/>
+                        </group>
+                    </group>
+                    <group string="Last Enrichment Error" invisible="not last_salla_enrichment_error">
+                        <field name="last_salla_enrichment_error" nolabel="1" readonly="1" groups="ecommerce_connector_base.group_ecommerce_integration_manager"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

@@ -92,3 +92,50 @@ Attempt to manually retry an `app.store.authorize` event as a standard integrati
 Verify an `AccessError` is raised.
 Attempt to manually retry it as an integration manager.
 Verify a `UserError` is raised, instructing the user to re-authorize from Salla.
+
+## UC-16 — Token Refresh Locking & Expiry Warnings
+
+### TC-UC16-1 — Successful Token Refresh
+Trigger manual refresh on a store with valid refresh token.
+Verify access token and refresh token are rotated, expiry dates advanced, and refresh lock cleared.
+
+### TC-UC16-2 — Concurrent Token Refresh Rejection
+Attempt concurrent token refresh on a locked store.
+Verify `FOR UPDATE NOWAIT` immediately rejects concurrent attempt without double-refreshing.
+
+### TC-UC16-3 — Refresh Failure and Re-authorization Flag
+Simulate network failure or 400 Bad Request during token refresh.
+Verify store is marked `token_refresh_requires_reauthorization = True` and refresh lock remains held until re-authorized.
+
+## UC-17 — Salla API Client & Optional Order Enrichment
+
+### TC-UC17-1 — Manual Enrichment Permission Guard
+Attempt `action_enrich_from_salla` as standard connector user or connector manager.
+Verify `AccessError` is raised. Verify only E-commerce Integration Manager is permitted.
+
+### TC-UC17-2 — Staged Order Target Eligibility
+Attempt enrichment on an archived store, Mock store, cancelled/imported order, or order linked to a `sale.order`.
+Verify action is rejected with a descriptive user message.
+
+### TC-UC17-3 — Access Token Preflight
+Invoke enrichment on a store with valid token (> 60s to expiry).
+Verify no refresh request is issued.
+Invoke enrichment on a store with near-expired token (<= 60s to expiry).
+Verify `_refresh_salla_token` is called exactly once before issuing the Merchant API call.
+
+### TC-UC17-4 — Transport Safety & Error Redaction
+Simulate HTTP redirects, network timeouts, connection drops, and oversized responses (> 2 MiB).
+Verify safe `SallaAPIError` is raised without exposing tokens or raw payloads.
+
+### TC-UC17-5 — Rate Limit Cooldown Persistence
+Simulate HTTP 429 Too Many Requests with `Retry-After: 120`.
+Verify `salla_api_retry_after_at` is persisted on `ecommerce.store` and subsequent calls within 120s are blocked before network socket creation.
+
+### TC-UC17-6 — Successful Field Enrichment & Audit Trail
+Enrich a draft staged order with valid Merchant API response.
+Verify customer details (name join, phone normalization), monetary totals, and external status are updated.
+Verify `salla_enrichment_count` increments to 1, `last_salla_enrichment_status` is `success`, and `raw_payload`, `state`, and `line_ids` are unmodified.
+
+### TC-UC17-7 — Stale API Snapshot Protection
+Set order watermark `last_external_update_at` to a timestamp newer than the API response `updated_at`.
+Verify enrichment is rejected as stale, recorded as failed in audit, and staged fields remain unchanged.

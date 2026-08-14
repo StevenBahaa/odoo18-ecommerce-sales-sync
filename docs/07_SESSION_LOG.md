@@ -292,3 +292,72 @@ Result: **17/17 tests passed, 0 failures, 0 errors.**
 
 **Outcome:**
 UC-16 successfully implemented and verified. All 15 targeted tests pass.
+
+## 2026-08-13 — UC-17 implementation: Salla API client and optional order enrichment
+
+### Goal
+
+Implement the Salla API client (`EcommerceSallaClient`) and manual order detail enrichment (`action_enrich_from_salla()`) with token preflight, single-use refresh token locking, safe credential redaction, rate-limit cooldown persistence, and atomic row-locked stale-response protection.
+
+### Work completed
+
+- Implemented `SallaAPIError(UserError)` masking raw remote payloads, exception strings, tokens, and credentials in user interfaces, logs, and error strings.
+- Implemented `EcommerceSallaClient._request()` for GET-only Salla Merchant API calls (`https://api.salla.dev/admin/v2`), enforcing URL path validation, token preflight via `store._prepare_salla_access_token()`, allowlisted rate-limit header parsing (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Retry-After`), and 2 MiB response size limit.
+- Implemented `EcommerceSallaClient._fetch_order_details()` with URL segment quoting (`urllib.parse.quote(..., safe="")`) and ID verification.
+- Added 5 rate-limiting and audit metadata fields to `ecommerce.store` protected by `_check_sensitive_field_access()`: `last_salla_api_call_at`, `salla_api_rate_limit_limit`, `salla_api_rate_limit_remaining`, `salla_api_rate_limit_reset_at`, `salla_api_retry_after_at`.
+- Implemented `_ensure_salla_api_caller()`, `_update_salla_api_usage_metadata()`, and `_prepare_salla_access_token()` with single-use refresh token preflight (refreshing if expired or within 60s of expiry).
+- Implemented pure `EcommerceSallaMapper._parse_order_details_payload()` normalizing customer name (first/last join), phone code prefixing, status dictionary extraction, and amount parsing with explicit zero amount preservation.
+- Created `ecommerce_salla_connector/models/ecommerce_external_order.py` extending `ecommerce.external.order` with `salla_enrichment_count`, `last_salla_enriched_at`, `last_salla_enriched_by_id`, `last_salla_enrichment_status`, and `last_salla_enrichment_error`.
+- Implemented `action_enrich_from_salla()` with `group_ecommerce_integration_manager` authorization, row locking (`FOR UPDATE NOWAIT`), stale-response protection against `last_external_update_at`, and currency check.
+- Created `ecommerce_salla_connector/views/ecommerce_external_order_views.xml` adding the "Enrich from Salla" button and Salla Enrichment audit tab.
+- Added 27 focused unit tests in `ecommerce_salla_connector/tests/test_uc17_salla_api_enrichment.py`.
+- Documented ADR-011 in `docs/08_DECISIONS.md`.
+
+### Files modified
+
+- `ecommerce_salla_connector/models/salla_client.py` — `SallaAPIError`, `_request()`, `_fetch_order_details()`.
+- `ecommerce_salla_connector/models/ecommerce_store.py` — rate metadata fields, `_prepare_salla_access_token()`, `_update_salla_api_usage_metadata()`.
+- `ecommerce_salla_connector/models/salla_mapper.py` — `_parse_order_details_payload()`.
+- `ecommerce_salla_connector/models/ecommerce_external_order.py` — model extension, audit fields, `action_enrich_from_salla()`.
+- `ecommerce_salla_connector/models/__init__.py` — import `ecommerce_external_order`.
+- `ecommerce_salla_connector/views/ecommerce_external_order_views.xml` — created view extension.
+- `ecommerce_salla_connector/__manifest__.py` — added view XML to data.
+- `ecommerce_salla_connector/tests/test_uc17_salla_api_enrichment.py` — 27 focused tests.
+- `ecommerce_salla_connector/tests/__init__.py` — import test module.
+- `docs/02_ARCHITECTURE.md`, `docs/05_CURRENT_STATUS.md`, `docs/06_ROADMAP.md`, `docs/07_SESSION_LOG.md`, `docs/08_DECISIONS.md`, `docs/TEST_CASES.md`, `docs/11_TROUBLESHOOTING.md` — updated.
+
+### Important decisions
+
+- Manual pre-import enrichment only: no synchronous API calls on the webhook intake path.
+- API 401 returns unauthorized and records failure; it does not automatically trigger token refresh or retry.
+- Rate limits parsed strictly from allowlisted headers; 429 enforces cooldown.
+- Stale responses older than `last_external_update_at` are rejected without mutating staged fields (ADR-011).
+
+### Problems discovered
+
+- Mock patching on Odoo recordset instances (`patch.object(self.store, ...)`) fails due to Odoo descriptors; class-level patching (`patch.object(EcommerceStore, ...)`) resolved the issue.
+- `res.currency` search by non-admin integration managers requires `sudo()` for reading active currency records.
+- Database writes inside Odoo `assertRaises` blocks are rolled back by Odoo's test savepoint.
+
+### Validation
+
+- UC-17 focused test suite:
+  ```powershell
+  python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d ecommerce_sales_sync_dev -u ecommerce_connector_base,ecommerce_salla_connector --test-enable --test-tags /ecommerce_salla_connector:TestUC17SallaAPIEnrichment --stop-after-init --no-http --log-level=error
+  ```
+  Result: **27/27 tests passed, 0 failures, 0 errors.**
+- Regression suite (UC-14, UC-15, UC-16):
+  ```powershell
+  python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d ecommerce_sales_sync_dev -u ecommerce_connector_base,ecommerce_salla_connector --test-enable --test-tags /ecommerce_salla_connector:TestUC14OrderStatusUpdates,/ecommerce_salla_connector:TestUC15OAuthAuthorization,/ecommerce_salla_connector:TestUC16TokenRefresh --stop-after-init --no-http --log-level=error
+  ```
+  Result: **44/44 tests passed, 0 failures, 0 errors.**
+- Regression suite (UC-12, UC-13):
+  ```powershell
+  python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d ecommerce_sales_sync_dev -u ecommerce_connector_base,ecommerce_salla_connector --test-enable --test-tags /ecommerce_connector_base:TestUC12SaleOrderIdempotency,/ecommerce_connector_base:TestUC13ManualRetry,/ecommerce_salla_connector:TestUC12WebhookIdempotency,/ecommerce_salla_connector:TestUC13WebhookRetry --stop-after-init --no-http --log-level=error
+  ```
+  Result: **Clean pass, 0 failures, 0 errors.**
+- `git diff --check`: **Clean pass (0 whitespace issues).**
+
+### Next recommended task
+
+Plan and implement UC-18 (Stock Readiness and Inventory Reservation Policies).

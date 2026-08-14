@@ -43,7 +43,15 @@ Use safe, redacted evidence. Do not paste credentials, raw authorization headers
 
 ## Authentication and API issues
 
-OAuth authorization ingest, refresh, and live Salla API calls are not implemented. Token-related errors beyond store configuration **need further investigation** under UC-15 through UC-17; do not work around them by manually logging/storing secrets in code or test data.
+| Symptom | Likely cause | Diagnose and resolve |
+| --- | --- | --- |
+| OAuth token refresh locked | A prior refresh encountered a network timeout or connection ambiguity | Store is marked `token_refresh_requires_reauthorization`. Complete a new `app.store.authorize` flow to rotate tokens safely. |
+| Enrichment blocked by cooldown | Salla API returned HTTP 429 (Too Many Requests) | Store is subject to active cooldown until `salla_api_retry_after_at`. Wait until the cooldown window expires before retrying. |
+| API 401 Unauthorized | Access token revoked or invalid on Salla | Verify merchant app authorization; re-authorize the app via Salla App Store. |
+| Enrichment currency mismatch | Salla order currency differs from staged order currency | Staged order was created with a different currency. Inspect store/company currency configuration. |
+| Enrichment skipped as stale | Salla API snapshot `updated_at` is older than `last_external_update_at` | Staged order has already received newer webhook updates. No action needed; existing data is newer. |
+| Enrichment action denied | User lacks E-commerce Integration Manager group | Only users in `group_ecommerce_integration_manager` can trigger manual API calls. |
+
 
 ## Test failures
 
