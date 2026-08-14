@@ -229,19 +229,21 @@ class EcommerceSallaMapper(models.AbstractModel):
             if isinstance(cust_name, str) and cust_name.strip():
                 update_vals["customer_name"] = cust_name.strip()
             else:
-                first = customer.get("first_name") if isinstance(customer.get("first_name"), str) else ""
-                last = customer.get("last_name") if isinstance(customer.get("last_name"), str) else ""
-                full_name = f"{first.strip()} {last.strip()}".strip()
+                first = customer.get("first_name")
+                last = customer.get("last_name")
+                first_str = first.strip() if isinstance(first, str) else ""
+                last_str = last.strip() if isinstance(last, str) else ""
+                full_name = f"{first_str} {last_str}".strip()
                 if full_name:
                     update_vals["customer_name"] = full_name
 
             # Phone
             raw_phone = customer.get("mobile") or customer.get("phone")
-            if raw_phone is not None and not isinstance(raw_phone, (dict, list)):
+            if isinstance(raw_phone, (str, int)) and not isinstance(raw_phone, bool):
                 phone_str = str(raw_phone).strip()
                 if phone_str:
                     mobile_code = customer.get("mobile_code")
-                    if mobile_code is not None and not isinstance(mobile_code, (dict, list)):
+                    if isinstance(mobile_code, (str, int)) and not isinstance(mobile_code, bool):
                         code_str = str(mobile_code).strip().lstrip("+")
                         clean_phone = phone_str.lstrip("+")
                         if code_str and not clean_phone.startswith(code_str):
@@ -255,7 +257,7 @@ class EcommerceSallaMapper(models.AbstractModel):
 
             # External Customer ID
             cust_id = customer.get("id")
-            if cust_id is not None and not isinstance(cust_id, (dict, list)):
+            if isinstance(cust_id, (str, int)) and not isinstance(cust_id, bool):
                 cust_id_str = str(cust_id).strip()
                 if cust_id_str:
                     update_vals["external_customer_id"] = cust_id_str
@@ -267,16 +269,17 @@ class EcommerceSallaMapper(models.AbstractModel):
             if parsed_date:
                 update_vals["order_date"] = parsed_date
 
-        # External Status
+        # External Status (string slug, then string name, or top-level string)
         status_val = data.get("status")
         if isinstance(status_val, dict):
-            status_slug = status_val.get("slug") or status_val.get("name") or status_val.get("id")
-            if status_slug:
-                update_vals["external_status"] = str(status_slug).strip()
-        elif status_val is not None and not isinstance(status_val, (dict, list)):
-            status_str = str(status_val).strip()
-            if status_str:
-                update_vals["external_status"] = status_str
+            status_slug = status_val.get("slug")
+            status_name = status_val.get("name")
+            if isinstance(status_slug, str) and status_slug.strip():
+                update_vals["external_status"] = status_slug.strip()
+            elif isinstance(status_name, str) and status_name.strip():
+                update_vals["external_status"] = status_name.strip()
+        elif isinstance(status_val, str) and status_val.strip():
+            update_vals["external_status"] = status_val.strip()
 
         # Amounts (preserving explicit numeric 0.0, omitting malformed/missing amounts)
         raw_total = None

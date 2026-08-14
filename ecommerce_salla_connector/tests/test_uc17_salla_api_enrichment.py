@@ -20,7 +20,7 @@ from odoo.addons.ecommerce_salla_connector.models.ecommerce_store import (
 class MockResponse:
     def __init__(self, status_code=200, json_data=None, headers=None, content=None, is_redirect=False):
         self.status_code = status_code
-        self._json_data = json_data if json_data is not None else {}
+        self._json_data = json_data
         self.headers = headers or {"Content-Type": "application/json"}
         self._content = content
         self.is_redirect = is_redirect
@@ -29,12 +29,16 @@ class MockResponse:
     def content(self):
         if self._content is not None:
             return self._content
-        return json.dumps(self._json_data).encode("utf-8")
+        if isinstance(self._json_data, (dict, list)):
+            return json.dumps(self._json_data).encode("utf-8")
+        return b"{}"
 
     def json(self):
+        if self._content is not None and self._json_data is None:
+            return json.loads(self._content.decode("utf-8"))
         if isinstance(self._json_data, Exception):
             raise self._json_data
-        return self._json_data
+        return self._json_data if self._json_data is not None else {}
 
     def raise_for_status(self):
         if self.status_code >= 400:
@@ -410,13 +414,30 @@ class TestUC17SallaAPIEnrichment(TransactionCase):
                 client._request(self.store, "GET", "/orders/1001")
             self.assertEqual(cm.exception.code, "connection")
 
-        # Oversized body
+        # Oversized body via content length
         oversized_content = b"x" * (SALLA_MAX_RESPONSE_BYTES + 10)
         mock_big = MockResponse(status_code=200, content=oversized_content)
         with patch("requests.request", return_value=mock_big):
             with self.assertRaises(SallaAPIError) as cm:
                 client._request(self.store, "GET", "/orders/1001")
             self.assertEqual(cm.exception.code, "invalid_response")
+
+        # Oversized body via Content-Length header
+        mock_cl_header = MockResponse(
+            status_code=200,
+            headers={"Content-Type": "application/json", "Content-Length": str(SALLA_MAX_RESPONSE_BYTES + 500)}
+        )
+        with patch("requests.request", return_value=mock_cl_header):
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "invalid_response")
+
+        # Invalid JSON
+        mock_invalid_json = MockResponse(status_code=200, content=b"{invalid: json")
+        with patch("requests.request", return_value=mock_invalid_json):
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "invalid_json")
 
         # Non-dict JSON (e.g. list)
         mock_list = MockResponse(status_code=200, json_data=[{"some": "data"}])
@@ -432,6 +453,27 @@ class TestUC17SallaAPIEnrichment(TransactionCase):
                 client._request(self.store, "GET", "/orders/1001")
             self.assertEqual(cm.exception.code, "invalid_response")
 
+        # Invalid envelope status: string instead of integer
+        mock_bad_status_type = MockResponse(status_code=200, json_data={"status": "200", "success": True, "data": {}})
+        with patch("requests.request", return_value=mock_bad_status_type):
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "invalid_response")
+
+        # Invalid envelope status: non-2xx status inside 200 envelope
+        mock_500_status = MockResponse(status_code=200, json_data={"status": 500, "success": True, "data": {}})
+        with patch("requests.request", return_value=mock_500_status):
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "invalid_response")
+
+        # Missing envelope status
+        mock_missing_status = MockResponse(status_code=200, json_data={"success": True, "data": {}})
+        with patch("requests.request", return_value=mock_missing_status):
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "invalid_response")
+
         # Missing data dict
         mock_no_data = MockResponse(status_code=200, json_data={"status": 200, "success": True, "data": "not_a_dict"})
         with patch("requests.request", return_value=mock_no_data):
@@ -440,16 +482,36 @@ class TestUC17SallaAPIEnrichment(TransactionCase):
             self.assertEqual(cm.exception.code, "invalid_response")
 
     def test_15_secrets_redaction_in_errors(self):
-        """15. Tokens and secrets are never present in error messages or string representations."""
-        mock_resp = MockResponse(status_code=500, json_data={"error": "Secret access_token leaked"})
+        """15. Tokens and secrets are never present in errors, audits, or logs."""
+        mock_resp = MockResponse(
+            status_code=500,
+            json_data={"error": "Remote leak with token valid_token_uc17 and secret secret_uc17"}
+        )
         with patch("requests.request", return_value=mock_resp):
             client = self.env["ecommerce.salla.client"].with_user(self.manager)
-            with self.assertRaises(SallaAPIError) as cm:
-                client._request(self.store, "GET", "/orders/1001")
+            with self.assertNoLogs(
+                "odoo.addons.ecommerce_salla_connector.models.salla_client",
+                level="WARNING",
+            ):
+                with self.assertRaises(SallaAPIError) as cm:
+                    client._request(self.store, "GET", "/orders/1001")
             err_msg = str(cm.exception)
             self.assertNotIn("valid_token_uc17", err_msg)
             self.assertNotIn("secret_uc17", err_msg)
-            self.assertNotIn("Secret access_token leaked", err_msg)
+            self.assertNotIn("Remote leak with token", err_msg)
+
+            # Test audit redaction in action_enrich_from_salla
+            with self.assertNoLogs(
+                "odoo.addons.ecommerce_salla_connector.models.salla_client",
+                level="WARNING",
+            ):
+                res = self.external_order.with_user(self.manager).action_enrich_from_salla()
+            self.assertEqual(res.get("params", {}).get("type"), "warning")
+            self.assertEqual(self.external_order.last_salla_enrichment_status, "failed")
+            audit_error = self.external_order.last_salla_enrichment_error or ""
+            self.assertNotIn("valid_token_uc17", audit_error)
+            self.assertNotIn("secret_uc17", audit_error)
+            self.assertNotIn("Remote leak with token", audit_error)
 
     def test_16_http_status_codes_mapping(self):
         """16. 400/403/404/422/500/503 map to intended safe codes."""
@@ -639,8 +701,11 @@ class TestUC17SallaAPIEnrichment(TransactionCase):
         self.assertNotIn("discount_amount", vals)
         self.assertNotIn("tax_amount", vals)
 
-    def test_28_mapper_malformed_amounts_not_written_as_zero(self):
-        """28. Malformed optional amounts are omitted and do not overwrite with zero."""
+    def test_28_mapper_malformed_amounts_and_status_not_written_as_zero_or_stringified_dicts(self):
+        """28. Malformed amounts, customer fields, and status values are omitted and never written as zero or stringified dicts."""
+        mapper = self.env["ecommerce.salla.mapper"]
+
+        # Malformed amounts
         data = dict(self.valid_order_details["data"])
         data["amounts"] = {
             "total": 100.0,
@@ -648,7 +713,6 @@ class TestUC17SallaAPIEnrichment(TransactionCase):
             "discounts": ["not", "an", "amount"],
             "tax": {"amount": "not_numeric"},
         }
-        mapper = self.env["ecommerce.salla.mapper"]
         parsed = mapper._parse_order_details_payload(data)
         vals = parsed["update_vals"]
         self.assertEqual(vals["total_amount"], 100.0)
@@ -661,6 +725,58 @@ class TestUC17SallaAPIEnrichment(TransactionCase):
         data_bad_total["amounts"] = {"total": "bad_total"}
         with self.assertRaises(UserError):
             mapper._parse_order_details_payload(data_bad_total)
+
+        # Malformed nested customer fields
+        data_bad_cust = dict(self.valid_order_details["data"])
+        data_bad_cust["customer"] = {
+            "name": {"bad": "nested_name"},
+            "first_name": ["bad_first"],
+            "last_name": True,
+            "mobile": {"nested": "phone"},
+            "mobile_code": [966],
+            "email": {"nested": "email"},
+            "id": ["bad_id"],
+        }
+        parsed_cust = mapper._parse_order_details_payload(data_bad_cust)
+        cust_vals = parsed_cust["update_vals"]
+        self.assertNotIn("customer_name", cust_vals)
+        self.assertNotIn("customer_phone", cust_vals)
+        self.assertNotIn("customer_email", cust_vals)
+        self.assertNotIn("external_customer_id", cust_vals)
+
+        # Malformed nested status values: nested dicts, lists, booleans
+        data_bad_status_dict = dict(self.valid_order_details["data"])
+        data_bad_status_dict["status"] = {"slug": {"nested": "dict"}, "name": [1, 2], "id": {"bad": 3}}
+        parsed_status_dict = mapper._parse_order_details_payload(data_bad_status_dict)
+        self.assertNotIn("external_status", parsed_status_dict["update_vals"])
+
+        data_bad_status_bool = dict(self.valid_order_details["data"])
+        data_bad_status_bool["status"] = True
+        parsed_status_bool = mapper._parse_order_details_payload(data_bad_status_bool)
+        self.assertNotIn("external_status", parsed_status_bool["update_vals"])
+
+        data_bad_status_list = dict(self.valid_order_details["data"])
+        data_bad_status_list["status"] = ["invalid_list_status"]
+        parsed_status_list = mapper._parse_order_details_payload(data_bad_status_list)
+        self.assertNotIn("external_status", parsed_status_list["update_vals"])
+
+        # Valid string status mapping
+        data_str_status = dict(self.valid_order_details["data"])
+        data_str_status["status"] = "in_progress"
+        self.assertEqual(mapper._parse_order_details_payload(data_str_status)["update_vals"]["external_status"], "in_progress")
+
+        # Numeric statuses are not an approved external-status representation.
+        data_int_status = dict(self.valid_order_details["data"])
+        data_int_status["status"] = 5
+        self.assertNotIn("external_status", mapper._parse_order_details_payload(data_int_status)["update_vals"])
+
+        # A malformed numeric slug must not win over a valid string name.
+        data_numeric_slug = dict(self.valid_order_details["data"])
+        data_numeric_slug["status"] = {"slug": 5, "name": "under_review"}
+        self.assertEqual(
+            mapper._parse_order_details_payload(data_numeric_slug)["update_vals"]["external_status"],
+            "under_review",
+        )
 
     def test_29_mapper_emits_no_lines_or_forbidden_keys(self):
         """29. Mapper output contains no line_ids, state, partner_id, or raw_payload."""
@@ -691,14 +807,21 @@ class TestUC17SallaAPIEnrichment(TransactionCase):
             self.assertEqual(self.external_order.tax_amount, 25.0)
 
     def test_31_enrichment_preserves_immutable_core_fields(self):
-        """31. Core fields (state, lines, partner, raw_payload, watermarks) remain unchanged."""
+        """31. Core fields (state, lines, partner, raw_payload, retry fields, watermarks) remain unchanged."""
         line = self.env["ecommerce.external.order.line"].create({
             "external_order_id": self.external_order.id,
             "product_name": "Original Product",
             "quantity": 1.0,
             "unit_price": 100.0,
         })
-        self.external_order.last_external_update_event_id = "EVT-ORIG-99"
+        fixed_time = fields.Datetime.from_string("2026-08-13 14:00:00")
+        self.external_order.sudo().write({
+            "last_external_update_event_id": "EVT-ORIG-99",
+            "retry_count": 3,
+            "last_retry_at": fixed_time,
+            "last_retry_by_id": self.manager.id,
+            "error_history": "Initial connection failure trace",
+        })
         orig_raw = self.external_order.raw_payload
 
         with patch.object(EcommerceSallaClient, "_fetch_order_details", return_value=self.valid_order_details["data"]):
@@ -710,6 +833,10 @@ class TestUC17SallaAPIEnrichment(TransactionCase):
             self.assertEqual(self.external_order.line_ids.ids, [line.id])
             self.assertEqual(self.external_order.raw_payload, orig_raw)
             self.assertEqual(self.external_order.last_external_update_event_id, "EVT-ORIG-99")
+            self.assertEqual(self.external_order.retry_count, 3)
+            self.assertEqual(self.external_order.last_retry_at, fixed_time)
+            self.assertEqual(self.external_order.last_retry_by_id, self.manager)
+            self.assertEqual(self.external_order.error_history, "Initial connection failure trace")
 
     def test_32_phone_normalization_updated(self):
         """32. Customer phone normalization is updated on enrichment."""

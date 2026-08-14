@@ -25,9 +25,9 @@ Evidence: current <code>develop</code> branch, implementation, targeted tests, G
 | UC-14 | External order status updates | Partial-update mapper, watermark ordering, row-lock serialization, safe mirroring to sale order, 15 focused tests. |
 | UC-15 | Secure OAuth authorization handling | Authorization-only transient credentials, redacted audit payloads, store lock/watermark, narrow sudo helper, and 17 focused tests. |
 | UC-16 | Token refresh locking/expiry warnings | Token refresh concurrency locks, strict response parser, expiry warning cron, UX alerts, and 15 focused tests. |
-| UC-17 | Salla API client and optional enrichment | Safe GET-only Merchant API client, token preflight with single-use refresh lock, allowlisted Order Details mapper, rate-limit cooldown persistence, stale/currency row-lock protection, and 27 focused tests. |
+| UC-17 | Salla API client and optional enrichment | Safe GET-only Merchant API client, token preflight with single-use refresh lock, allowlisted Order Details mapper, rate-limit cooldown persistence, stale/currency row-lock protection, and 43 focused tests covering 44 behaviors. |
 
-UC-17 implementation validated: 27/27 focused tests passed, all regression tests passed.
+UC-17 implementation validated: 43/43 focused tests passed, all regression tests passed.
 
 ## Features in progress
 
