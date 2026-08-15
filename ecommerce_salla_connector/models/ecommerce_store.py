@@ -576,9 +576,9 @@ class EcommerceStore(models.Model):
                 retry_after_at=self.salla_api_retry_after_at
             )
 
-        scopes = (self.oauth_scope or "").split()
-        if "orders.read" not in scopes:
-            raise UserError(_("Store was not authorized with orders.read scope."))
+        scopes = set((self.oauth_scope or "").split())
+        if not ({"orders.read", "orders.read_write"} & scopes):
+            raise UserError(_("Store was not authorized with orders.read or orders.read_write scope."))
 
         near_expiry_threshold = now + timedelta(seconds=60)
         needs_refresh = (

@@ -26,8 +26,12 @@ Evidence: current <code>develop</code> branch, implementation, targeted tests, G
 | UC-15 | Secure OAuth authorization handling | Authorization-only transient credentials, redacted audit payloads, store lock/watermark, narrow sudo helper, and 17 focused tests. |
 | UC-16 | Token refresh locking/expiry warnings | Token refresh concurrency locks, strict response parser, expiry warning cron, UX alerts, and 15 focused tests. |
 | UC-17 | Salla API client and optional enrichment | Safe GET-only Merchant API client, token preflight with single-use refresh lock, allowlisted Order Details mapper, rate-limit cooldown persistence, stale/currency row-lock protection, and 43 focused tests covering 44 behaviors. |
+| UC-22 | Salla Live Payload Compatibility and Status Normalization | Strict shared status normalizer (slug -> name string hierarchy), timezone-aware Salla datetime parsing, customer identity/mobile normalization, context-safe monetary parsing, nested product/variant ID and line amount mapping, strict malformed-line/quantity/float-boundary validation, and orders.read_write OAuth scope preflight support. |
+| UC-23 | Webhook retry status synchronization | Imported external orders now close their linked failed/pending-review order-created webhooks, preserve webhook error audit history, and allow idempotent repair from either retry entry point. |
 
-UC-17 implementation validated: 43/43 focused tests passed, all regression tests passed.
+UC-22 implementation validated: 30/30 focused tests passed, all regression tests (UC-12 to UC-17, 114 total tests) passed. Manual live verification remains pending a new demo-store order after upgrade.
+
+UC-23 focused validation passed: 6/6 UC-13 base retry tests. The affected non-UC-15 regression set passed. The full run's only error was an environmental Windows filestore permission denial while UC-15 created an attachment, not a connector assertion failure.
 
 ## Features in progress
 
@@ -44,7 +48,7 @@ No UC implementation is currently in progress. UC-18 is the next planned target.
 
 ## Known bugs
 
-No confirmed unresolved defect was found in the focused UC-12 through UC-17 regression run.
+No confirmed connector defect remains in the focused UC-13 retry workflow. The full UC-15 regression requires write access to Odoo's configured Windows filestore before it can be rerun cleanly.
 
 Real Salla payload compatibility, especially product identifier shapes beyond the bundled samples, **needs further investigation** against live documentation/payload captures before production use.
 

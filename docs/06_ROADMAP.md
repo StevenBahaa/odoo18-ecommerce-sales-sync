@@ -16,6 +16,8 @@ This combines the local UC plan with code currently present on <code>develop</co
 
 | UC-16 | Token refresh locking/expiry warnings and credential safety UX. |
 | UC-17 | Salla API client and optional enrichment: GET-only Merchant API client, token preflight with single-use refresh lock, allowlisted Order Details mapper, rate-limit cooldown persistence, and stale/currency row-lock protection. |
+| UC-22 | Salla live payload compatibility and status normalization: strict shared status normalizer, Salla datetime object parsing with timezone conversion to UTC, customer identity/mobile normalization, nested product/variant ID and line amount mapping, orders.read_write OAuth scope preflight. |
+| UC-23 | Webhook retry status synchronization: direct external-order retry and webhook retry now converge the related `order.created` event to `processed` after a successful import. |
 
 ## Next
 

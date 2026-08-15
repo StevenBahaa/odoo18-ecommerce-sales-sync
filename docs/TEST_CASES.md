@@ -139,3 +139,71 @@ Verify `salla_enrichment_count` increments to 1, `last_salla_enrichment_status` 
 ### TC-UC17-7 — Stale API Snapshot Protection
 Set order watermark `last_external_update_at` to a timestamp newer than the API response `updated_at`.
 Verify enrichment is rejected as stale, recorded as failed in audit, and staged fields remain unchanged.
+
+## UC-22 — Salla Live Payload Compatibility & Status Normalization
+
+### TC-UC22-1 — Live Status Object Normalization
+Receive a live Salla webhook or API response where `status` is a JSON object containing `id`, `name`, and `slug`.
+Verify `external_status` is stored strictly as the scalar string `slug` (e.g. `under_review`) and never stringifies a Python dictionary or JSON container.
+
+### TC-UC22-2 — Status Fallback to Name
+Receive a status object with missing/blank slug and valid string `name`.
+Verify `external_status` falls back to `name`. Verify numeric slugs and container IDs do not override string names.
+
+### TC-UC22-3 — Timezone-Aware Datetime Normalization
+Receive a Salla datetime object (`{"date": "2026-08-15 03:17:11.000000", "timezone": "Asia/Riyadh"}`) or top-level RFC/GMT timestamp with explicit offset (`Sat Aug 15 2026 03:17:13 GMT+0300`).
+Verify the timestamp is converted accurately to UTC-naive datetime string (`2026-08-15 00:17:11` / `2026-08-15 00:17:13`).
+
+### TC-UC22-4 — Customer Identity & Canonical Phone Normalization
+Receive a payload with `full_name`, numeric `mobile`, and `mobile_code`.
+Verify customer name is extracted and phone is stored in canonical digits without duplicate country codes.
+
+### TC-UC22-5 — Nested Line Item Identifiers & Amounts
+Receive line items exposing product ID at `item.product.id`, variant at `item.product_sku_id`, and unit price at `item.amounts.price_without_tax`.
+Verify external product/variant IDs and nonzero unit prices/subtotals are mapped accurately.
+
+### TC-UC22-6 — Strict Price Ambiguity & Malformed Value Protection
+Simulate a line with unparseable price string or an ambiguous line total derivation with non-zero discount.
+Verify `UserError` is raised and the line price is never silently defaulted to `0.0`.
+
+### TC-UC22-7 — OAuth Scope Preflight (orders.read and orders.read_write)
+Authorize store with exact `orders.read_write` or `orders.read`.
+Verify `_prepare_salla_access_token` succeeds. Verify lookalike tokens (`orders.read_all`, `orders.readonly`) are rejected.
+
+### TC-UC22-8 — End-to-End Workflow & Idempotency
+Process a live-like webhook payload with mapped products and SAR currency.
+Verify the external order and lines transition to `ready`.
+Process a payload with unmapped products.
+Verify lines remain in `pending_mapping` and event is parked for review.
+Redeliver the event and verify idempotency.
+
+### TC-UC22-9 — Malformed Line, Quantity, Range, and Identifier Safety
+Receive an item list containing a non-object entry, or an item with an explicitly
+null quantity. Verify the payload is rejected rather than silently importing a
+partial order or treating null as quantity one. Submit a finite Decimal exponent
+that overflows Python/Odoo Float storage and verify it is rejected. Submit an
+invalid truthy primary identifier plus a valid fallback identifier and verify the
+valid scalar fallback is used; floating-point IDs must be rejected.
+
+### TC-UC22-10 — Monetary Context, Datetime Type, and Full Idempotency
+Verify a list is summed only for a discount collection and is rejected for a
+total, price, tax, or shipping field. Verify a partial update accepts the shared
+`{"total": ...}` monetary wrapper. Verify a naive datetime object with a present
+invalid or blank timezone is rejected. Process a malformed-line webhook and
+verify no external order is created; then redeliver a successfully imported order
+and verify the existing external order, partner, and sale order are reused.
+
+## UC-23 — Webhook Retry Status Synchronization
+
+### TC-UC23-1 — Direct External-Order Retry Closes Webhook Review
+Create an `order.created` webhook whose staged order is `pending_mapping` because
+of an unmapped SKU. Create a matching Odoo product and click **Retry Import** on
+the external order. Verify the external order is `imported`, its webhook is
+`processed`, the webhook links the matched partner and created sale order, its
+active error is cleared, and its former error remains in webhook error history.
+
+### TC-UC23-2 — Stale Webhook Retry Is Idempotent
+Create a `pending_review` order-created webhook linked to an already imported
+external order and sale order. Click **Retry Processing**. Verify it becomes
+`processed` without attempting a terminal external-order retry or creating a
+second sale order; the retry audit and previous error history remain available.

@@ -848,7 +848,7 @@ class TestUC17SallaAPIEnrichment(TransactionCase):
         }
         with patch.object(EcommerceSallaClient, "_fetch_order_details", return_value=data):
             self.external_order.with_user(self.manager).action_enrich_from_salla()
-            self.assertEqual(self.external_order.customer_phone, "+966 55 111 2233")
+            self.assertEqual(self.external_order.customer_phone, "966551112233")
             self.assertEqual(self.external_order.normalized_customer_phone, "966551112233")
 
     def test_33_returned_id_mismatch_fails_enrichment(self):
