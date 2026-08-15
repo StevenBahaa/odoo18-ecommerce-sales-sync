@@ -294,3 +294,35 @@ For single-use tokens, a distributed transaction gap exists between Odoo's netwo
 ### Tradeoffs
 
 -   Operators must manually re-authorize the app if a network glitch occurs exactly during token refresh, which is a worse UX than automatic recovery but guarantees credential safety.
+
+## ADR-011: Manual Salla API Client, Rate-Limit Boundaries, and Stale-Response Protection
+
+**Status:** Accepted (2026-08-13)
+
+### Context
+
+UC-17 introduces authenticated Salla Merchant API calls (`https://api.salla.dev/admin/v2/orders/{id}`) to fetch full order details before staged order import. Key architectural risks include webhook throughput degradation from synchronous remote calls, credential exposure in logs/UIs, token refresh loops on 401 errors, rate limit exhaustion, and overwriting fresh webhook updates with stale API snapshots.
+
+### Decision
+
+1. **Manual Pre-Import Enrichment Only:** API calls are strictly initiated manually via `action_enrich_from_salla()` by authorized E-commerce Integration Managers. No synchronous or background API requests execute on the webhook intake or processing paths.
+2. **GET-Only and URL Path Segment Quoting:** All Merchant API requests are restricted to HTTP GET. External order IDs are quoted as single URL path segments using `urllib.parse.quote(str(id), safe="")` to eliminate path traversal and SSRF vectors.
+3. **Safe Redacted Exceptions:** All remote errors, HTTP codes, and transport exceptions are mapped to `SallaAPIError(UserError)` with generic sanitized messages. Tokens, authorization headers, and raw responses are strictly excluded from exception messages and tracebacks.
+4. **Rate-Limit Metadata and Cooldown Enforcement:** Allowlisted rate limit headers (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Retry-After`) update protected `ecommerce.store` fields. Active cooldown timestamps immediately reject subsequent outbound requests before opening any network sockets.
+5. **No Automatic 401 Retries or Refreshes:** An API 401 (Unauthorized) response is treated as a terminal failure for that request. It records an audit failure and does not trigger automatic secondary token refresh or retry, preventing infinite loops or rate quota burn.
+6. **Row Locking and Stale-Response Protection:** Before mutating any staged fields, `action_enrich_from_salla()` acquires a PostgreSQL `FOR UPDATE NOWAIT` row lock on `ecommerce.external.order`. If the API snapshot `updated_at` is older than the existing watermark `last_external_update_at`, the update is rejected as stale without field mutation.
+7. **Preservation of Core Integrity Fields:** Enrichment updates only allowlisted staged fields (customer details, monetary totals, external status). It never modifies `state`, `partner_id`, `sale_order_id`, `line_ids`, or `raw_payload`.
+
+### Alternatives considered
+
+- **Automatic Webhook Enrichment:** Enriching every incoming webhook automatically before staging. (Rejected: creates severe webhook latency, exposes the system to external API downtime, and rapidly exhausts API rate limits).
+- **Automatic Token Refresh on 401:** Triggering `_refresh_salla_token()` when an API call returns 401. (Rejected: Salla refresh tokens are single-use; ambiguous failures or bad permissions could trigger uncontrolled refresh attempts).
+
+### Reasoning
+
+Decoupling API enrichment from webhook intake preserves webhook reliability and performance. Combining preflight token preparation, row locking, and watermark checks ensures safe concurrency without risking data regressions or credential leakage.
+
+### Tradeoffs
+
+- Operators must manually click "Enrich from Salla" if they require additional remote details before importing an order.
+- Orders already imported into `sale.order` cannot be enriched from the external API to maintain sales document immutability.

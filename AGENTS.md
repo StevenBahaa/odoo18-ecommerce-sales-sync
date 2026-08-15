@@ -1,3 +1,6 @@
 # E-commerce Sales Sync Rules
 
-- **Git Commit and Push Policy**: Never perform `git commit` or `git push` to GitHub without explicit user approval. Always complete the implementation, review it with the user, and wait for confirmation before committing or pushing.
+- **Strict Git Operation Policy**:
+  - Never perform any `git commit`, `git push`, branch creation, or `git merge` without explicit user approval.
+  - Always prepare and present the exact proposed commit title, commit description, target branch, and list of files to the user beforehand.
+  - Wait for explicit user confirmation on the commit title, message, and changes before executing any Git command.

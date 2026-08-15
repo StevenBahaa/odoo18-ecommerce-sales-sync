@@ -1,0 +1,965 @@
+from datetime import datetime, timezone, timedelta
+from dateutil.relativedelta import relativedelta
+from unittest.mock import patch, MagicMock
+import json
+
+from odoo import fields
+from odoo.exceptions import UserError, AccessError
+from odoo.tests.common import TransactionCase, tagged
+from odoo.addons.ecommerce_salla_connector.models.salla_client import (
+    SallaAPIError,
+    SALLA_API_BASE_URL,
+    SALLA_MAX_RESPONSE_BYTES,
+    EcommerceSallaClient,
+)
+from odoo.addons.ecommerce_salla_connector.models.ecommerce_store import (
+    EcommerceStore,
+)
+
+
+class MockResponse:
+    def __init__(self, status_code=200, json_data=None, headers=None, content=None, is_redirect=False):
+        self.status_code = status_code
+        self._json_data = json_data
+        self.headers = headers or {"Content-Type": "application/json"}
+        self._content = content
+        self.is_redirect = is_redirect
+
+    @property
+    def content(self):
+        if self._content is not None:
+            return self._content
+        if isinstance(self._json_data, (dict, list)):
+            return json.dumps(self._json_data).encode("utf-8")
+        return b"{}"
+
+    def json(self):
+        if self._content is not None and self._json_data is None:
+            return json.loads(self._content.decode("utf-8"))
+        if isinstance(self._json_data, Exception):
+            raise self._json_data
+        return self._json_data if self._json_data is not None else {}
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            import requests
+            err = requests.exceptions.HTTPError(f"HTTP {self.status_code}")
+            err.response = self
+            raise err
+
+
+@tagged("-at_install", "post_install", "ecommerce_salla_connector")
+class TestUC17SallaAPIEnrichment(TransactionCase):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        group_user_id = cls.env.ref("base.group_user").id
+        cls.manager = cls.env["res.users"].create({
+            "name": "Salla API Manager",
+            "login": "salla_api_manager",
+            "groups_id": [
+                (4, group_user_id),
+                (4, cls.env.ref("ecommerce_connector_base.group_ecommerce_integration_manager").id),
+            ],
+        })
+        cls.user = cls.env["res.users"].create({
+            "name": "Salla API User",
+            "login": "salla_api_user",
+            "groups_id": [
+                (4, group_user_id),
+                (4, cls.env.ref("ecommerce_connector_base.group_ecommerce_connector_user").id),
+            ],
+        })
+        cls.connector_manager = cls.env["res.users"].create({
+            "name": "Salla Connector Manager",
+            "login": "salla_connector_manager",
+            "groups_id": [
+                (4, group_user_id),
+                (4, cls.env.ref("ecommerce_connector_base.group_ecommerce_connector_manager").id),
+            ],
+        })
+        cls.company_other = cls.env["res.company"].create({
+            "name": "Other Test Company",
+        })
+
+    def setUp(self):
+        super().setUp()
+        self.store = self.env["ecommerce.store"].create({
+            "name": "Live Salla Store UC17",
+            "platform": "salla",
+            "environment": "production",
+            "client_id": "client_uc17",
+            "client_secret": "secret_uc17",
+            "access_token": "valid_token_uc17",
+            "refresh_token": "valid_refresh_uc17",
+            "oauth_scope": "offline_access orders.read",
+            "oauth_token_type": "bearer",
+            "access_token_expires_at": fields.Datetime.now() + timedelta(days=10),
+            "refresh_token_expires_at": fields.Datetime.now() + relativedelta(months=1),
+        })
+
+        self.external_order = self.env["ecommerce.external.order"].create({
+            "name": "EXT/SALLA/1001",
+            "store_id": self.store.id,
+            "external_order_id": "1001",
+            "external_order_reference": "REF-1001",
+            "customer_name": "Original Customer",
+            "customer_phone": "+966500000001",
+            "normalized_customer_phone": "966500000001",
+            "customer_email": "orig@example.com",
+            "currency_id": self.env.company.currency_id.id,
+            "total_amount": 150.0,
+            "shipping_amount": 20.0,
+            "discount_amount": 0.0,
+            "tax_amount": 15.0,
+            "state": "draft",
+            "raw_payload": '{"original": "payload"}',
+        })
+
+        self.valid_order_details = {
+            "status": 200,
+            "success": True,
+            "data": {
+                "id": 1001,
+                "reference_id": "REF-1001-ENRICHED",
+                "date": "2026-08-13 15:30:00",
+                "updated_at": "2026-08-13 16:00:00",
+                "currency": self.env.company.currency_id.name,
+                "status": {
+                    "id": 2,
+                    "name": "Under Review",
+                    "slug": "under_review",
+                },
+                "customer": {
+                    "id": 555,
+                    "first_name": "Ahmed",
+                    "last_name": "Ali",
+                    "mobile": "512345678",
+                    "mobile_code": "+966",
+                    "email": "ahmed.ali@example.com",
+                },
+                "amounts": {
+                    "total": {"amount": 250.0, "currency": self.env.company.currency_id.name},
+                    "shipping_cost": {"amount": 35.0, "currency": self.env.company.currency_id.name},
+                    "discounts": {"amount": 15.0, "currency": self.env.company.currency_id.name},
+                    "tax": {"amount": 25.0, "currency": self.env.company.currency_id.name},
+                },
+            },
+        }
+
+    # =========================================================================
+    # A. Permissions and target eligibility (1-5)
+    # =========================================================================
+
+    def test_01_permissions_integration_manager_only(self):
+        """1. Only integration managers may invoke action_enrich_from_salla."""
+        with self.assertRaises(AccessError):
+            self.external_order.with_user(self.user).action_enrich_from_salla()
+
+        with self.assertRaises(AccessError):
+            self.external_order.with_user(self.connector_manager).action_enrich_from_salla()
+
+        with patch.object(EcommerceSallaClient, "_fetch_order_details", return_value=self.valid_order_details["data"]):
+            res = self.external_order.with_user(self.manager).action_enrich_from_salla()
+            self.assertEqual(res.get("params", {}).get("type"), "success")
+
+    def test_02_mock_mode_rejected(self):
+        """2. Mock environment store orders are rejected before transport."""
+        self.store.environment = "mock"
+        with patch("requests.request") as mock_req:
+            with self.assertRaises(UserError) as cm:
+                self.external_order.with_user(self.manager).action_enrich_from_salla()
+            self.assertIn("Mock", str(cm.exception))
+            mock_req.assert_not_called()
+
+    def test_03_ineligible_order_targets_rejected(self):
+        """3. Archived store, bad state, linked sale order, missing ID rejected before transport."""
+        self.store.active = False
+        with patch("requests.request") as mock_req:
+            with self.assertRaises(UserError):
+                self.external_order.with_user(self.manager).action_enrich_from_salla()
+            mock_req.assert_not_called()
+        self.store.active = True
+
+        sale_order = self.env["sale.order"].create({
+            "partner_id": self.env.ref("base.partner_admin").id,
+        })
+        self.external_order.sale_order_id = sale_order.id
+        with self.assertRaises(UserError):
+            self.external_order.with_user(self.manager).action_enrich_from_salla()
+        self.external_order.sale_order_id = False
+
+        for bad_state in ("imported", "cancelled", "duplicate"):
+            self.external_order.state = bad_state
+            with self.assertRaises(UserError):
+                self.external_order.with_user(self.manager).action_enrich_from_salla()
+        self.external_order.state = "draft"
+
+        self.external_order.external_order_id = "   "
+        with self.assertRaises(UserError):
+            self.external_order.with_user(self.manager).action_enrich_from_salla()
+
+    def test_04_cross_company_access_check(self):
+        """4. Cross-company inaccessible orders raise AccessError."""
+        other_store = self.env["ecommerce.store"].create({
+            "name": "Other Company Store",
+            "platform": "salla",
+            "environment": "production",
+            "company_id": self.company_other.id,
+            "client_id": "client_other",
+            "client_secret": "secret_other",
+            "access_token": "token_other",
+            "refresh_token": "refresh_other",
+            "oauth_scope": "offline_access orders.read",
+            "access_token_expires_at": fields.Datetime.now() + timedelta(days=10),
+            "refresh_token_expires_at": fields.Datetime.now() + relativedelta(months=1),
+        })
+        other_order = self.env["ecommerce.external.order"].create({
+            "name": "EXT/OTHER/COMP",
+            "store_id": other_store.id,
+            "company_id": self.company_other.id,
+            "external_order_id": "9999",
+            "currency_id": self.company_other.currency_id.id,
+            "state": "draft",
+        })
+        user_single_company = self.env["res.users"].create({
+            "name": "Single Company Manager",
+            "login": "single_comp_mgr",
+            "company_id": self.env.company.id,
+            "company_ids": [(6, 0, [self.env.company.id])],
+            "groups_id": [
+                (4, self.env.ref("base.group_user").id),
+                (4, self.env.ref("ecommerce_connector_base.group_ecommerce_integration_manager").id),
+            ],
+        })
+        with self.assertRaises(AccessError):
+            other_order.with_user(user_single_company).action_enrich_from_salla()
+
+    def test_05_xml_view_compiles_cleanly(self):
+        """5. Inherited view with action_enrich_from_salla exists and compiles."""
+        view = self.env.ref("ecommerce_salla_connector.view_ecommerce_external_order_form_inherit_salla", raise_if_not_found=False)
+        self.assertTrue(view, "Inherited view for Salla enrichment must exist.")
+
+    # =========================================================================
+    # B. Access-token preflight and UC-16 reuse (6-10)
+    # =========================================================================
+
+    def test_06_valid_token_uses_without_refresh(self):
+        """6. Valid orders.read scope and token > 60s from expiry does not refresh."""
+        with patch.object(EcommerceStore, "_refresh_salla_token") as mock_refresh:
+            token = self.store.with_user(self.manager)._prepare_salla_access_token()
+            self.assertEqual(token, "valid_token_uc17")
+            mock_refresh.assert_not_called()
+
+    def test_07a_missing_token_triggers_refresh(self):
+        """7a. Missing access token triggers token refresh."""
+        self.store.access_token = False
+
+        def mock_refresh_side_effect(store_self):
+            store_self.sudo().write({
+                "access_token": "refreshed_missing_token",
+                "access_token_expires_at": fields.Datetime.now() + timedelta(days=14),
+            })
+
+        with patch.object(EcommerceStore, "_refresh_salla_token", side_effect=mock_refresh_side_effect, autospec=True) as mock_ref:
+            token = self.store.with_user(self.manager)._prepare_salla_access_token()
+            self.assertEqual(token, "refreshed_missing_token")
+            mock_ref.assert_called_once()
+
+    def test_07b_expired_token_triggers_refresh(self):
+        """7b. Expired access token triggers token refresh."""
+        self.store.access_token_expires_at = fields.Datetime.now() - timedelta(minutes=5)
+
+        def mock_refresh_side_effect(store_self):
+            store_self.sudo().write({
+                "access_token": "refreshed_expired_token",
+                "access_token_expires_at": fields.Datetime.now() + timedelta(days=14),
+            })
+
+        with patch.object(EcommerceStore, "_refresh_salla_token", side_effect=mock_refresh_side_effect, autospec=True) as mock_ref:
+            token = self.store.with_user(self.manager)._prepare_salla_access_token()
+            self.assertEqual(token, "refreshed_expired_token")
+            mock_ref.assert_called_once()
+
+    def test_07c_near_expiry_token_triggers_refresh(self):
+        """7c. Near-expiry access token (<= 60s) triggers token refresh."""
+        self.store.access_token_expires_at = fields.Datetime.now() + timedelta(seconds=30)
+
+        def mock_refresh_side_effect(store_self):
+            store_self.sudo().write({
+                "access_token": "refreshed_near_expiry_token",
+                "access_token_expires_at": fields.Datetime.now() + timedelta(days=14),
+            })
+
+        with patch.object(EcommerceStore, "_refresh_salla_token", side_effect=mock_refresh_side_effect, autospec=True) as mock_ref:
+            token = self.store.with_user(self.manager)._prepare_salla_access_token()
+            self.assertEqual(token, "refreshed_near_expiry_token")
+            mock_ref.assert_called_once()
+
+    def test_08_missing_scope_or_reauth_or_lock_blocks_requests(self):
+        """8. Missing scope, reauth required, or refresh in progress blocks requests."""
+        with patch("requests.request") as mock_req:
+            # Missing orders.read scope
+            self.store.oauth_scope = "offline_access products.read"
+            with self.assertRaises(UserError) as cm:
+                self.store.with_user(self.manager)._prepare_salla_access_token()
+            self.assertIn("orders.read", str(cm.exception))
+            self.store.oauth_scope = "offline_access orders.read"
+
+            # Reauthorization required
+            self.store.token_refresh_requires_reauthorization = True
+            with self.assertRaises(UserError) as cm:
+                self.store.with_user(self.manager)._prepare_salla_access_token()
+            self.assertIn("reauthorization", str(cm.exception).lower())
+            self.store.token_refresh_requires_reauthorization = False
+
+            # Refresh in progress
+            self.store.token_refresh_lock = True
+            with self.assertRaises(UserError) as cm:
+                self.store.with_user(self.manager)._prepare_salla_access_token()
+            self.assertIn("progress", str(cm.exception).lower())
+            self.store.token_refresh_lock = False
+
+            mock_req.assert_not_called()
+
+    def test_09_refresh_failure_produces_safe_failure_audit(self):
+        """9. Refresh failure during enrichment records safe failed audit without order mutation."""
+        self.store.access_token = False
+        with patch.object(EcommerceStore, "_refresh_salla_token", side_effect=UserError("Simulated refresh failure")):
+            res = self.external_order.with_user(self.manager).action_enrich_from_salla()
+            self.assertEqual(res.get("params", {}).get("type"), "warning")
+            self.assertEqual(self.external_order.last_salla_enrichment_status, "failed")
+            self.assertEqual(self.external_order.salla_enrichment_count, 1)
+            self.assertEqual(self.external_order.customer_name, "Original Customer")
+
+    def test_10_api_401_does_not_retry_or_refresh_automatically(self):
+        """10. Merchant API 401 raises unauthorized and makes no secondary refresh or retry."""
+        mock_resp = MockResponse(status_code=401, json_data={"status": 401, "success": False, "error": {"message": "Unauthorized"}})
+        with patch("requests.request", return_value=mock_resp) as mock_req, \
+             patch.object(EcommerceStore, "_refresh_salla_token") as mock_ref:
+            res = self.external_order.with_user(self.manager).action_enrich_from_salla()
+            self.assertEqual(res.get("params", {}).get("type"), "warning")
+            self.assertEqual(self.external_order.last_salla_enrichment_status, "failed")
+            self.assertIn("401", self.external_order.last_salla_enrichment_error)
+            mock_ref.assert_not_called()
+            mock_req.assert_called_once()
+
+    # =========================================================================
+    # C. Transport safety (11-16)
+    # =========================================================================
+
+    def test_11_request_transport_headers_and_options(self):
+        """11. Verify request parameters: URL, GET, Bearer, Accept, timeout, allow_redirects=False."""
+        mock_resp = MockResponse(status_code=200, json_data=self.valid_order_details)
+        with patch("requests.request", return_value=mock_resp) as mock_req:
+            client = self.env["ecommerce.salla.client"]
+            client.with_user(self.manager)._request(self.store, "GET", "/orders/1001")
+
+            mock_req.assert_called_once()
+            args, kwargs = mock_req.call_args
+            self.assertEqual(args[0], "GET")
+            self.assertEqual(args[1], f"{SALLA_API_BASE_URL}/orders/1001")
+            self.assertEqual(kwargs.get("timeout"), (5, 30))
+            self.assertFalse(kwargs.get("allow_redirects"))
+            headers = kwargs.get("headers", {})
+            self.assertEqual(headers.get("Accept"), "application/json")
+            self.assertEqual(headers.get("Authorization"), "Bearer valid_token_uc17")
+
+    def test_12_endpoint_and_method_validation(self):
+        """12. Invalid endpoints, non-GET methods are rejected before transport."""
+        client = self.env["ecommerce.salla.client"].with_user(self.manager)
+        with patch("requests.request") as mock_req:
+            with self.assertRaises(SallaAPIError):
+                client._request(self.store, "POST", "/orders/1001")
+
+            for bad_ep in ("orders/1001", "//orders/1001", "/orders/../test", "/orders\\test", "/orders#frag", "/orders?query=1"):
+                with self.assertRaises(SallaAPIError):
+                    client._request(self.store, "GET", bad_ep)
+
+            mock_req.assert_not_called()
+
+    def test_13_order_id_quoting(self):
+        """13. External order ID is safely quoted as a single URL path segment."""
+        mock_resp = MockResponse(status_code=200, json_data={
+            "status": 200, "success": True, "data": {"id": "ord/123 456"}
+        })
+        with patch("requests.request", return_value=mock_resp) as mock_req:
+            client = self.env["ecommerce.salla.client"].with_user(self.manager)
+            client._fetch_order_details(self.store, "ord/123 456")
+            args, _ = mock_req.call_args
+            self.assertEqual(args[1], f"{SALLA_API_BASE_URL}/orders/ord%2F123%20456")
+
+    def test_14_transport_errors_mapping(self):
+        """14. Redirects, timeouts, connection errors, invalid JSON, oversized body map to safe SallaAPIErrors."""
+        import requests
+        client = self.env["ecommerce.salla.client"].with_user(self.manager)
+
+        # Redirect
+        mock_redirect = MockResponse(status_code=302, is_redirect=True)
+        with patch("requests.request", return_value=mock_redirect):
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "redirect")
+
+        # Timeout
+        with patch("requests.request", side_effect=requests.exceptions.Timeout):
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "timeout")
+
+        # Connection error
+        with patch("requests.request", side_effect=requests.exceptions.ConnectionError):
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "connection")
+
+        # Oversized body via content length
+        oversized_content = b"x" * (SALLA_MAX_RESPONSE_BYTES + 10)
+        mock_big = MockResponse(status_code=200, content=oversized_content)
+        with patch("requests.request", return_value=mock_big):
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "invalid_response")
+
+        # Oversized body via Content-Length header
+        mock_cl_header = MockResponse(
+            status_code=200,
+            headers={"Content-Type": "application/json", "Content-Length": str(SALLA_MAX_RESPONSE_BYTES + 500)}
+        )
+        with patch("requests.request", return_value=mock_cl_header):
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "invalid_response")
+
+        # Invalid JSON
+        mock_invalid_json = MockResponse(status_code=200, content=b"{invalid: json")
+        with patch("requests.request", return_value=mock_invalid_json):
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "invalid_json")
+
+        # Non-dict JSON (e.g. list)
+        mock_list = MockResponse(status_code=200, json_data=[{"some": "data"}])
+        with patch("requests.request", return_value=mock_list):
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "invalid_response")
+
+        # success != True
+        mock_unsuccessful = MockResponse(status_code=200, json_data={"status": 200, "success": False})
+        with patch("requests.request", return_value=mock_unsuccessful):
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "invalid_response")
+
+        # Invalid envelope status: string instead of integer
+        mock_bad_status_type = MockResponse(status_code=200, json_data={"status": "200", "success": True, "data": {}})
+        with patch("requests.request", return_value=mock_bad_status_type):
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "invalid_response")
+
+        # Invalid envelope status: non-2xx status inside 200 envelope
+        mock_500_status = MockResponse(status_code=200, json_data={"status": 500, "success": True, "data": {}})
+        with patch("requests.request", return_value=mock_500_status):
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "invalid_response")
+
+        # Missing envelope status
+        mock_missing_status = MockResponse(status_code=200, json_data={"success": True, "data": {}})
+        with patch("requests.request", return_value=mock_missing_status):
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "invalid_response")
+
+        # Missing data dict
+        mock_no_data = MockResponse(status_code=200, json_data={"status": 200, "success": True, "data": "not_a_dict"})
+        with patch("requests.request", return_value=mock_no_data):
+            with self.assertRaises(SallaAPIError) as cm:
+                client._fetch_order_details(self.store, "1001")
+            self.assertEqual(cm.exception.code, "invalid_response")
+
+    def test_15_secrets_redaction_in_errors(self):
+        """15. Tokens and secrets are never present in errors, audits, or logs."""
+        mock_resp = MockResponse(
+            status_code=500,
+            json_data={"error": "Remote leak with token valid_token_uc17 and secret secret_uc17"}
+        )
+        with patch("requests.request", return_value=mock_resp):
+            client = self.env["ecommerce.salla.client"].with_user(self.manager)
+            with self.assertNoLogs(
+                "odoo.addons.ecommerce_salla_connector.models.salla_client",
+                level="WARNING",
+            ):
+                with self.assertRaises(SallaAPIError) as cm:
+                    client._request(self.store, "GET", "/orders/1001")
+            err_msg = str(cm.exception)
+            self.assertNotIn("valid_token_uc17", err_msg)
+            self.assertNotIn("secret_uc17", err_msg)
+            self.assertNotIn("Remote leak with token", err_msg)
+
+            # Test audit redaction in action_enrich_from_salla
+            with self.assertNoLogs(
+                "odoo.addons.ecommerce_salla_connector.models.salla_client",
+                level="WARNING",
+            ):
+                res = self.external_order.with_user(self.manager).action_enrich_from_salla()
+            self.assertEqual(res.get("params", {}).get("type"), "warning")
+            self.assertEqual(self.external_order.last_salla_enrichment_status, "failed")
+            audit_error = self.external_order.last_salla_enrichment_error or ""
+            self.assertNotIn("valid_token_uc17", audit_error)
+            self.assertNotIn("secret_uc17", audit_error)
+            self.assertNotIn("Remote leak with token", audit_error)
+
+    def test_16_http_status_codes_mapping(self):
+        """16. 400/403/404/422/500/503 map to intended safe codes."""
+        client = self.env["ecommerce.salla.client"].with_user(self.manager)
+        status_map = {
+            400: "remote_4xx",
+            403: "forbidden",
+            404: "not_found",
+            422: "remote_4xx",
+            500: "remote_5xx",
+            503: "remote_5xx",
+        }
+        for code, expected_code in status_map.items():
+            mock_resp = MockResponse(status_code=code, json_data={"status": code, "success": False})
+            with patch("requests.request", return_value=mock_resp):
+                with self.assertRaises(SallaAPIError) as cm:
+                    client._request(self.store, "GET", "/orders/1001")
+                self.assertEqual(cm.exception.code, expected_code)
+
+    # =========================================================================
+    # D. Rate limiting (17-23)
+    # =========================================================================
+
+    def test_17_rate_limit_headers_persisted(self):
+        """17. Allowlisted rate limit headers update store metadata."""
+        headers = {
+            "Content-Type": "application/json",
+            "X-RateLimit-Limit": "60",
+            "X-RateLimit-Remaining": "45",
+            "X-RateLimit-Reset": str(int((datetime.now(timezone.utc) + timedelta(minutes=10)).timestamp())),
+            "Retry-After": "30",
+        }
+        mock_resp = MockResponse(status_code=200, json_data=self.valid_order_details, headers=headers)
+        with patch("requests.request", return_value=mock_resp):
+            client = self.env["ecommerce.salla.client"].with_user(self.manager)
+            client._request(self.store, "GET", "/orders/1001")
+
+            self.assertEqual(self.store.salla_api_rate_limit_limit, 60)
+            self.assertEqual(self.store.salla_api_rate_limit_remaining, 45)
+            self.assertTrue(self.store.salla_api_rate_limit_reset_at)
+            self.assertTrue(self.store.salla_api_retry_after_at)
+
+    def test_18_malformed_rate_headers_ignored(self):
+        """18. Malformed rate headers do not break valid response."""
+        headers = {
+            "Content-Type": "application/json",
+            "X-RateLimit-Limit": "not_an_int",
+            "X-RateLimit-Remaining": "invalid",
+            "X-RateLimit-Reset": "bad_date",
+        }
+        mock_resp = MockResponse(status_code=200, json_data=self.valid_order_details, headers=headers)
+        with patch("requests.request", return_value=mock_resp):
+            client = self.env["ecommerce.salla.client"].with_user(self.manager)
+            res = client._request(self.store, "GET", "/orders/1001")
+            self.assertTrue(res.get("success"))
+
+    def test_19_429_seconds_retry_after(self):
+        """19. 429 response with integer Retry-After stores cooldown timestamp."""
+        headers = {
+            "Content-Type": "application/json",
+            "Retry-After": "120",
+        }
+        mock_resp = MockResponse(status_code=429, json_data={"status": 429, "success": False}, headers=headers)
+        with patch("requests.request", return_value=mock_resp):
+            client = self.env["ecommerce.salla.client"].with_user(self.manager)
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "rate_limited")
+            self.assertTrue(cm.exception.retry_after_at)
+
+    def test_20_429_http_date_retry_after(self):
+        """20. 429 response with HTTP-date Retry-After calculates cooldown correctly."""
+        future_dt = datetime.now(timezone.utc) + timedelta(minutes=5)
+        http_date_str = future_dt.strftime("%a, %d %b %Y %H:%M:%S GMT")
+        headers = {
+            "Content-Type": "application/json",
+            "Retry-After": http_date_str,
+        }
+        mock_resp = MockResponse(status_code=429, json_data={"status": 429, "success": False}, headers=headers)
+        with patch("requests.request", return_value=mock_resp):
+            client = self.env["ecommerce.salla.client"].with_user(self.manager)
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "rate_limited")
+            self.assertTrue(cm.exception.retry_after_at)
+
+    def test_21_429_without_retry_after_defaults_60s(self):
+        """21. 429 response without Retry-After header defaults to 60s cooldown."""
+        mock_resp = MockResponse(status_code=429, json_data={"status": 429, "success": False})
+        with patch("requests.request", return_value=mock_resp):
+            client = self.env["ecommerce.salla.client"].with_user(self.manager)
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "rate_limited")
+            self.assertTrue(cm.exception.retry_after_at)
+
+    def test_22_active_cooldown_blocks_requests(self):
+        """22. A call during active cooldown makes zero network requests."""
+        self.store.salla_api_retry_after_at = fields.Datetime.now() + timedelta(minutes=5)
+        with patch("requests.request") as mock_req:
+            client = self.env["ecommerce.salla.client"].with_user(self.manager)
+            with self.assertRaises(SallaAPIError) as cm:
+                client._request(self.store, "GET", "/orders/1001")
+            self.assertEqual(cm.exception.code, "cooldown")
+            mock_req.assert_not_called()
+
+    def test_23_cooldown_clamping(self):
+        """23. Cooldown values are clamped between 1 second and 3600 seconds."""
+        client = self.env["ecommerce.salla.client"].with_user(self.manager)
+        now = datetime(2026, 8, 14, 12, 0, 0)
+
+        # Negative or 0 clamped to 1
+        res_zero = client._parse_retry_after_header("0", now)
+        self.assertEqual(res_zero, now + timedelta(seconds=1))
+
+        # Greater than 3600 clamped to 3600
+        res_large = client._parse_retry_after_header("99999", now)
+        self.assertEqual(res_large, now + timedelta(seconds=3600))
+
+    # =========================================================================
+    # E. Mapping (24-29)
+    # =========================================================================
+
+    def test_24_mapper_order_details_normalization(self):
+        """24. Mapper parses split customer name, mobile code, monetary objects, status object."""
+        mapper = self.env["ecommerce.salla.mapper"]
+        parsed = mapper._parse_order_details_payload(self.valid_order_details["data"])
+
+        self.assertEqual(parsed["external_order_id"], "1001")
+        self.assertEqual(parsed["currency_code"], self.env.company.currency_id.name)
+        vals = parsed["update_vals"]
+        self.assertEqual(vals["customer_name"], "Ahmed Ali")
+        self.assertEqual(vals["customer_phone"], "966512345678")
+        self.assertEqual(vals["customer_email"], "ahmed.ali@example.com")
+        self.assertEqual(vals["external_customer_id"], "555")
+        self.assertEqual(vals["external_status"], "under_review")
+        self.assertEqual(vals["total_amount"], 250.0)
+        self.assertEqual(vals["shipping_amount"], 35.0)
+        self.assertEqual(vals["discount_amount"], 15.0)
+        self.assertEqual(vals["tax_amount"], 25.0)
+
+    def test_25_mapper_string_status_and_combined_name(self):
+        """25. Plain string status and combined name are parsed correctly."""
+        data = dict(self.valid_order_details["data"])
+        data["status"] = "in_progress"
+        data["customer"] = {
+            "name": "Combined Full Name",
+            "mobile": "+966500000000",
+        }
+        mapper = self.env["ecommerce.salla.mapper"]
+        parsed = mapper._parse_order_details_payload(data)
+        vals = parsed["update_vals"]
+        self.assertEqual(vals["customer_name"], "Combined Full Name")
+        self.assertEqual(vals["external_status"], "in_progress")
+
+    def test_26_mapper_preserves_explicit_zero_amounts(self):
+        """26. Explicit numeric zero amounts are preserved as 0.0."""
+        data = dict(self.valid_order_details["data"])
+        data["amounts"] = {
+            "total": 0.0,
+            "shipping_cost": 0.0,
+            "discounts": 0.0,
+            "tax": 0.0,
+        }
+        mapper = self.env["ecommerce.salla.mapper"]
+        parsed = mapper._parse_order_details_payload(data)
+        vals = parsed["update_vals"]
+        self.assertEqual(vals["total_amount"], 0.0)
+        self.assertEqual(vals["shipping_amount"], 0.0)
+        self.assertEqual(vals["discount_amount"], 0.0)
+        self.assertEqual(vals["tax_amount"], 0.0)
+
+    def test_27_mapper_omits_missing_optional_fields(self):
+        """27. Missing optional fields produce no keys in update_vals."""
+        minimal_data = {
+            "id": 1001,
+            "reference_id": "REF-1001",
+            "status": "draft",
+        }
+        mapper = self.env["ecommerce.salla.mapper"]
+        parsed = mapper._parse_order_details_payload(minimal_data)
+        vals = parsed["update_vals"]
+        self.assertNotIn("customer_name", vals)
+        self.assertNotIn("customer_phone", vals)
+        self.assertNotIn("customer_email", vals)
+        self.assertNotIn("shipping_amount", vals)
+        self.assertNotIn("discount_amount", vals)
+        self.assertNotIn("tax_amount", vals)
+
+    def test_28_mapper_malformed_amounts_and_status_not_written_as_zero_or_stringified_dicts(self):
+        """28. Malformed amounts, customer fields, and status values are omitted and never written as zero or stringified dicts."""
+        mapper = self.env["ecommerce.salla.mapper"]
+
+        # Malformed amounts
+        data = dict(self.valid_order_details["data"])
+        data["amounts"] = {
+            "total": 100.0,
+            "shipping_cost": "invalid_string_amount",
+            "discounts": ["not", "an", "amount"],
+            "tax": {"amount": "not_numeric"},
+        }
+        parsed = mapper._parse_order_details_payload(data)
+        vals = parsed["update_vals"]
+        self.assertEqual(vals["total_amount"], 100.0)
+        self.assertNotIn("shipping_amount", vals)
+        self.assertNotIn("discount_amount", vals)
+        self.assertNotIn("tax_amount", vals)
+
+        # Malformed total rejects payload
+        data_bad_total = dict(self.valid_order_details["data"])
+        data_bad_total["amounts"] = {"total": "bad_total"}
+        with self.assertRaises(UserError):
+            mapper._parse_order_details_payload(data_bad_total)
+
+        # Malformed nested customer fields
+        data_bad_cust = dict(self.valid_order_details["data"])
+        data_bad_cust["customer"] = {
+            "name": {"bad": "nested_name"},
+            "first_name": ["bad_first"],
+            "last_name": True,
+            "mobile": {"nested": "phone"},
+            "mobile_code": [966],
+            "email": {"nested": "email"},
+            "id": ["bad_id"],
+        }
+        parsed_cust = mapper._parse_order_details_payload(data_bad_cust)
+        cust_vals = parsed_cust["update_vals"]
+        self.assertNotIn("customer_name", cust_vals)
+        self.assertNotIn("customer_phone", cust_vals)
+        self.assertNotIn("customer_email", cust_vals)
+        self.assertNotIn("external_customer_id", cust_vals)
+
+        # Malformed nested status values: nested dicts, lists, booleans
+        data_bad_status_dict = dict(self.valid_order_details["data"])
+        data_bad_status_dict["status"] = {"slug": {"nested": "dict"}, "name": [1, 2], "id": {"bad": 3}}
+        parsed_status_dict = mapper._parse_order_details_payload(data_bad_status_dict)
+        self.assertNotIn("external_status", parsed_status_dict["update_vals"])
+
+        data_bad_status_bool = dict(self.valid_order_details["data"])
+        data_bad_status_bool["status"] = True
+        parsed_status_bool = mapper._parse_order_details_payload(data_bad_status_bool)
+        self.assertNotIn("external_status", parsed_status_bool["update_vals"])
+
+        data_bad_status_list = dict(self.valid_order_details["data"])
+        data_bad_status_list["status"] = ["invalid_list_status"]
+        parsed_status_list = mapper._parse_order_details_payload(data_bad_status_list)
+        self.assertNotIn("external_status", parsed_status_list["update_vals"])
+
+        # Valid string status mapping
+        data_str_status = dict(self.valid_order_details["data"])
+        data_str_status["status"] = "in_progress"
+        self.assertEqual(mapper._parse_order_details_payload(data_str_status)["update_vals"]["external_status"], "in_progress")
+
+        # Numeric statuses are not an approved external-status representation.
+        data_int_status = dict(self.valid_order_details["data"])
+        data_int_status["status"] = 5
+        self.assertNotIn("external_status", mapper._parse_order_details_payload(data_int_status)["update_vals"])
+
+        # A malformed numeric slug must not win over a valid string name.
+        data_numeric_slug = dict(self.valid_order_details["data"])
+        data_numeric_slug["status"] = {"slug": 5, "name": "under_review"}
+        self.assertEqual(
+            mapper._parse_order_details_payload(data_numeric_slug)["update_vals"]["external_status"],
+            "under_review",
+        )
+
+    def test_29_mapper_emits_no_lines_or_forbidden_keys(self):
+        """29. Mapper output contains no line_ids, state, partner_id, or raw_payload."""
+        mapper = self.env["ecommerce.salla.mapper"]
+        parsed = mapper._parse_order_details_payload(self.valid_order_details["data"])
+        vals = parsed["update_vals"]
+        forbidden = {"state", "partner_id", "sale_order_id", "line_ids", "raw_payload", "currency_id"}
+        self.assertFalse(forbidden.intersection(vals.keys()))
+
+    # =========================================================================
+    # F. Enrichment application (30-40)
+    # =========================================================================
+
+    def test_30_successful_enrichment_updates_staged_fields_and_audit(self):
+        """30. Successful enrichment updates allowlisted fields and increments audit count."""
+        with patch.object(EcommerceSallaClient, "_fetch_order_details", return_value=self.valid_order_details["data"]):
+            res = self.external_order.with_user(self.manager).action_enrich_from_salla()
+            self.assertEqual(res.get("params", {}).get("type"), "success")
+
+            self.assertEqual(self.external_order.salla_enrichment_count, 1)
+            self.assertEqual(self.external_order.last_salla_enrichment_status, "success")
+            self.assertEqual(self.external_order.customer_name, "Ahmed Ali")
+            self.assertEqual(self.external_order.customer_phone, "966512345678")
+            self.assertEqual(self.external_order.normalized_customer_phone, "966512345678")
+            self.assertEqual(self.external_order.total_amount, 250.0)
+            self.assertEqual(self.external_order.shipping_amount, 35.0)
+            self.assertEqual(self.external_order.discount_amount, 15.0)
+            self.assertEqual(self.external_order.tax_amount, 25.0)
+
+    def test_31_enrichment_preserves_immutable_core_fields(self):
+        """31. Core fields (state, lines, partner, raw_payload, retry fields, watermarks) remain unchanged."""
+        line = self.env["ecommerce.external.order.line"].create({
+            "external_order_id": self.external_order.id,
+            "product_name": "Original Product",
+            "quantity": 1.0,
+            "unit_price": 100.0,
+        })
+        fixed_time = fields.Datetime.from_string("2026-08-13 14:00:00")
+        self.external_order.sudo().write({
+            "last_external_update_event_id": "EVT-ORIG-99",
+            "retry_count": 3,
+            "last_retry_at": fixed_time,
+            "last_retry_by_id": self.manager.id,
+            "error_history": "Initial connection failure trace",
+        })
+        orig_raw = self.external_order.raw_payload
+
+        with patch.object(EcommerceSallaClient, "_fetch_order_details", return_value=self.valid_order_details["data"]):
+            self.external_order.with_user(self.manager).action_enrich_from_salla()
+
+            self.assertEqual(self.external_order.state, "draft")
+            self.assertFalse(self.external_order.partner_id)
+            self.assertFalse(self.external_order.sale_order_id)
+            self.assertEqual(self.external_order.line_ids.ids, [line.id])
+            self.assertEqual(self.external_order.raw_payload, orig_raw)
+            self.assertEqual(self.external_order.last_external_update_event_id, "EVT-ORIG-99")
+            self.assertEqual(self.external_order.retry_count, 3)
+            self.assertEqual(self.external_order.last_retry_at, fixed_time)
+            self.assertEqual(self.external_order.last_retry_by_id, self.manager)
+            self.assertEqual(self.external_order.error_history, "Initial connection failure trace")
+
+    def test_32_phone_normalization_updated(self):
+        """32. Customer phone normalization is updated on enrichment."""
+        data = dict(self.valid_order_details["data"])
+        data["customer"] = {
+            "first_name": "Salem",
+            "last_name": "Dosari",
+            "mobile": "+966 55 111 2233",
+        }
+        with patch.object(EcommerceSallaClient, "_fetch_order_details", return_value=data):
+            self.external_order.with_user(self.manager).action_enrich_from_salla()
+            self.assertEqual(self.external_order.customer_phone, "966551112233")
+            self.assertEqual(self.external_order.normalized_customer_phone, "966551112233")
+
+    def test_33_returned_id_mismatch_fails_enrichment(self):
+        """33. Returned Salla ID mismatch records failed audit without mutating fields."""
+        bad_data = dict(self.valid_order_details["data"])
+        bad_data["id"] = 9999
+        with patch.object(EcommerceSallaClient, "_fetch_order_details", return_value=bad_data):
+            res = self.external_order.with_user(self.manager).action_enrich_from_salla()
+            self.assertEqual(res.get("params", {}).get("type"), "warning")
+            self.assertEqual(self.external_order.last_salla_enrichment_status, "failed")
+            self.assertEqual(self.external_order.customer_name, "Original Customer")
+
+    def test_34_currency_mismatch_fails_enrichment(self):
+        """34. Currency mismatch fails enrichment and preserves staged values."""
+        bad_data = dict(self.valid_order_details["data"])
+        bad_data["currency"] = "USD"
+        with patch.object(EcommerceSallaClient, "_fetch_order_details", return_value=bad_data):
+            res = self.external_order.with_user(self.manager).action_enrich_from_salla()
+            self.assertEqual(res.get("params", {}).get("type"), "warning")
+            self.assertEqual(self.external_order.last_salla_enrichment_status, "failed")
+            self.assertEqual(self.external_order.customer_name, "Original Customer")
+
+    def test_35_stale_response_older_than_watermark_fails_enrichment(self):
+        """35. API snapshot older than last_external_update_at skips enrichment."""
+        self.external_order.last_external_update_at = fields.Datetime.from_string("2026-08-13 18:00:00")
+        stale_data = dict(self.valid_order_details["data"])
+        stale_data["updated_at"] = "2026-08-13 15:00:00"
+
+        with patch.object(EcommerceSallaClient, "_fetch_order_details", return_value=stale_data):
+            res = self.external_order.with_user(self.manager).action_enrich_from_salla()
+            self.assertEqual(res.get("params", {}).get("type"), "warning")
+            self.assertEqual(self.external_order.last_salla_enrichment_status, "failed")
+            self.assertEqual(self.external_order.customer_name, "Original Customer")
+
+    def test_36_equal_or_newer_watermark_allows_enrichment(self):
+        """36. API snapshot equal to or newer than watermark enriches without altering webhook watermark."""
+        self.external_order.last_external_update_at = fields.Datetime.from_string("2026-08-13 16:00:00")
+        self.external_order.last_external_update_event_id = "EVT-KEEP-123"
+
+        data = dict(self.valid_order_details["data"])
+        data["updated_at"] = "2026-08-13 16:00:00"  # Equal watermark
+
+        with patch.object(EcommerceSallaClient, "_fetch_order_details", return_value=data):
+            res = self.external_order.with_user(self.manager).action_enrich_from_salla()
+            self.assertEqual(res.get("params", {}).get("type"), "success")
+            self.assertEqual(self.external_order.last_salla_enrichment_status, "success")
+            # Webhook watermark event ID preserved
+            self.assertEqual(self.external_order.last_external_update_event_id, "EVT-KEEP-123")
+
+    def test_37_concurrent_state_change_blocks_enrichment(self):
+        """37. Target state becoming ineligible during row-lock recheck aborts enrichment."""
+        orig_fetch = EcommerceSallaClient._fetch_order_details
+
+        def mock_fetch_and_concurrent_change(client_self, store, ext_id):
+            # Simulate another worker confirming/importing the order concurrently
+            self.external_order.state = "imported"
+            return orig_fetch(client_self, store, ext_id)
+
+        with patch.object(EcommerceSallaClient, "_fetch_order_details", side_effect=mock_fetch_and_concurrent_change, autospec=True):
+            with patch("requests.request", return_value=MockResponse(status_code=200, json_data=self.valid_order_details)):
+                with self.assertRaises(UserError) as cm:
+                    self.external_order.with_user(self.manager).action_enrich_from_salla()
+                self.assertIn("imported", str(cm.exception))
+
+    def test_38_enrichment_does_not_auto_import_or_create_sale_order(self):
+        """38. Successful enrichment does not create sale order or partner."""
+        with patch.object(EcommerceSallaClient, "_fetch_order_details", return_value=self.valid_order_details["data"]):
+            self.external_order.with_user(self.manager).action_enrich_from_salla()
+            self.assertEqual(self.external_order.state, "draft")
+            self.assertFalse(self.external_order.sale_order_id)
+            self.assertFalse(self.external_order.partner_id)
+
+    def test_39_repeat_enrichment_increments_count(self):
+        """39. Repeated enrichment on eligible order increments audit count."""
+        with patch.object(EcommerceSallaClient, "_fetch_order_details", return_value=self.valid_order_details["data"]):
+            self.external_order.with_user(self.manager).action_enrich_from_salla()
+            self.assertEqual(self.external_order.salla_enrichment_count, 1)
+
+            self.external_order.with_user(self.manager).action_enrich_from_salla()
+            self.assertEqual(self.external_order.salla_enrichment_count, 2)
+
+    def test_40_safe_failure_persists_audit_notification(self):
+        """40. Safe failure returns warning notification and writes audit."""
+        bad_data = dict(self.valid_order_details["data"])
+        bad_data["id"] = 9999  # Mismatch ID
+        with patch.object(EcommerceSallaClient, "_fetch_order_details", return_value=bad_data):
+            res = self.external_order.with_user(self.manager).action_enrich_from_salla()
+            self.assertEqual(res.get("type"), "ir.actions.client")
+            self.assertEqual(res.get("tag"), "display_notification")
+            self.assertEqual(res.get("params", {}).get("type"), "warning")
+            self.assertEqual(self.external_order.last_salla_enrichment_status, "failed")
+            self.assertTrue(self.external_order.last_salla_enrichment_error)
+
+    # =========================================================================
+    # G. Network-free Mock Lab (44)
+    # =========================================================================
+
+    def test_44_mock_lab_order_created_remains_network_free(self):
+        """44. Mock Lab and mock environment operations make zero network requests."""
+        mock_store = self.env["ecommerce.store"].create({
+            "name": "Mock Salla Store",
+            "platform": "salla",
+            "environment": "mock",
+        })
+        mock_order = self.env["ecommerce.external.order"].create({
+            "name": "EXT/MOCK/1",
+            "store_id": mock_store.id,
+            "external_order_id": "MOCK-1",
+            "currency_id": self.env.company.currency_id.id,
+        })
+        with patch("requests.request") as mock_req:
+            with self.assertRaises(UserError):
+                mock_order.with_user(self.manager).action_enrich_from_salla()
+            mock_req.assert_not_called()

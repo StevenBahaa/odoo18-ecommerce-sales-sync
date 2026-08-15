@@ -292,3 +292,168 @@ Result: **17/17 tests passed, 0 failures, 0 errors.**
 
 **Outcome:**
 UC-16 successfully implemented and verified. All 15 targeted tests pass.
+
+## 2026-08-13 — UC-17 implementation: Salla API client and optional order enrichment
+
+### Goal
+
+Implement the Salla API client (`EcommerceSallaClient`) and manual order detail enrichment (`action_enrich_from_salla()`) with token preflight, single-use refresh token locking, safe credential redaction, rate-limit cooldown persistence, and atomic row-locked stale-response protection.
+
+### Work completed
+
+- Implemented `SallaAPIError(UserError)` masking raw remote payloads, exception strings, tokens, and credentials in user interfaces, logs, and error strings.
+- Implemented `EcommerceSallaClient._request()` for GET-only Salla Merchant API calls (`https://api.salla.dev/admin/v2`), enforcing URL path validation, token preflight via `store._prepare_salla_access_token()`, allowlisted rate-limit header parsing (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Retry-After`), and 2 MiB response size limit.
+- Implemented `EcommerceSallaClient._fetch_order_details()` with URL segment quoting (`urllib.parse.quote(..., safe="")`) and ID verification.
+- Added 5 rate-limiting and audit metadata fields to `ecommerce.store` protected by `_check_sensitive_field_access()`: `last_salla_api_call_at`, `salla_api_rate_limit_limit`, `salla_api_rate_limit_remaining`, `salla_api_rate_limit_reset_at`, `salla_api_retry_after_at`.
+- Implemented `_ensure_salla_api_caller()`, `_update_salla_api_usage_metadata()`, and `_prepare_salla_access_token()` with single-use refresh token preflight (refreshing if expired or within 60s of expiry).
+- Implemented pure `EcommerceSallaMapper._parse_order_details_payload()` normalizing customer name (first/last join), phone code prefixing, status dictionary extraction, and amount parsing with explicit zero amount preservation.
+- Created `ecommerce_salla_connector/models/ecommerce_external_order.py` extending `ecommerce.external.order` with `salla_enrichment_count`, `last_salla_enriched_at`, `last_salla_enriched_by_id`, `last_salla_enrichment_status`, and `last_salla_enrichment_error`.
+- Implemented `action_enrich_from_salla()` with `group_ecommerce_integration_manager` authorization, row locking (`FOR UPDATE NOWAIT`), stale-response protection against `last_external_update_at`, and currency check.
+- Created `ecommerce_salla_connector/views/ecommerce_external_order_views.xml` adding the "Enrich from Salla" button and Salla Enrichment audit tab.
+- Added 27 focused unit tests in `ecommerce_salla_connector/tests/test_uc17_salla_api_enrichment.py`.
+- Documented ADR-011 in `docs/08_DECISIONS.md`.
+
+### Files modified
+
+- `ecommerce_salla_connector/models/salla_client.py` — `SallaAPIError`, `_request()`, `_fetch_order_details()`.
+- `ecommerce_salla_connector/models/ecommerce_store.py` — rate metadata fields, `_prepare_salla_access_token()`, `_update_salla_api_usage_metadata()`.
+- `ecommerce_salla_connector/models/salla_mapper.py` — `_parse_order_details_payload()`.
+- `ecommerce_salla_connector/models/ecommerce_external_order.py` — model extension, audit fields, `action_enrich_from_salla()`.
+- `ecommerce_salla_connector/models/__init__.py` — import `ecommerce_external_order`.
+- `ecommerce_salla_connector/views/ecommerce_external_order_views.xml` — created view extension.
+- `ecommerce_salla_connector/__manifest__.py` — added view XML to data.
+- `ecommerce_salla_connector/tests/test_uc17_salla_api_enrichment.py` — 27 focused tests.
+- `ecommerce_salla_connector/tests/__init__.py` — import test module.
+- `docs/02_ARCHITECTURE.md`, `docs/05_CURRENT_STATUS.md`, `docs/06_ROADMAP.md`, `docs/07_SESSION_LOG.md`, `docs/08_DECISIONS.md`, `docs/TEST_CASES.md`, `docs/11_TROUBLESHOOTING.md` — updated.
+
+### Important decisions
+
+- Manual pre-import enrichment only: no synchronous API calls on the webhook intake path.
+- API 401 returns unauthorized and records failure; it does not automatically trigger token refresh or retry.
+- Rate limits parsed strictly from allowlisted headers; 429 enforces cooldown.
+- Stale responses older than `last_external_update_at` are rejected without mutating staged fields (ADR-011).
+
+### Problems discovered & Review Fixes
+
+- **[P1 Fix] Malformed amounts overwriting valid staged data**: Added `_extract_amount_numeric()` helper. Missing or malformed optional amounts (`shipping_cost`, `discounts`, `tax`) are omitted from `update_vals` so existing valid staged data is never overwritten with `0.0`. Corrupted `total_amount` explicitly rejects the payload.
+- **[P2 Fix] Swallowed AccessErrors**: Added `except AccessError: raise` before general error handlers to ensure permissions and record-rule failures propagate immediately. Replaced `self.sudo().write(update_vals)` with `self.write(update_vals)` so the Integration Manager writes business fields under standard ACLs and record rules.
+- **[P2 Fix] Full 44-behavior test suite**: Expanded unit test suite from 27 to 43 comprehensive test methods covering independent missing/expired tokens, refresh locks, JSON envelope malformations, HTTP-date parsing, 60s fallback, cooldown clamping (1-3600s), malformed amount rejection, missing optional field omission, watermark comparisons, concurrent state changes, immutable field preservation, and network-free mock lab.
+
+### Validation
+
+- UC-17 comprehensive test suite:
+  ```powershell
+  python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d ecommerce_sales_sync_dev -u ecommerce_connector_base,ecommerce_salla_connector --test-enable --test-tags /ecommerce_salla_connector:TestUC17SallaAPIEnrichment --stop-after-init --no-http --log-level=error
+  ```
+  Result: **43/43 tests passed (covering all 44 plan behaviors), 0 failures, 0 errors.**
+- Regression suite (UC-14, UC-15, UC-16):
+  ```powershell
+  python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d ecommerce_sales_sync_dev -u ecommerce_connector_base,ecommerce_salla_connector --test-enable --test-tags /ecommerce_salla_connector:TestUC14OrderStatusUpdates,/ecommerce_salla_connector:TestUC15OAuthAuthorization,/ecommerce_salla_connector:TestUC16TokenRefresh --stop-after-init --no-http --log-level=error
+  ```
+  Result: **44/44 tests passed, 0 failures, 0 errors.**
+- Regression suite (UC-12, UC-13):
+  ```powershell
+  python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d ecommerce_sales_sync_dev -u ecommerce_connector_base,ecommerce_salla_connector --test-enable --test-tags /ecommerce_connector_base:TestUC12SaleOrderIdempotency,/ecommerce_connector_base:TestUC13ManualRetry,/ecommerce_salla_connector:TestUC12WebhookIdempotency,/ecommerce_salla_connector:TestUC13WebhookRetry --stop-after-init --no-http --log-level=error
+  ```
+  Result: **Clean pass, 0 failures, 0 errors.**
+- `git diff --check`: **Clean pass (0 whitespace issues).**
+
+### Next recommended task
+
+Plan and implement UC-18 (Stock Readiness and Inventory Reservation Policies).
+
+## 2026-08-15 — UC-22 implementation: Salla Live Payload Compatibility and Status Normalization
+
+### Goal
+
+Correct Salla mapper defects exposed by real demo-store `order.created` webhook payloads:
+1. Normalize `status` objects to stable string slugs (e.g. `under_review`) rather than stringifying Python dictionaries.
+2. Parse Salla datetime objects (`{"date": "...", "timezone": "Asia/Riyadh"}`) and convert timezone-aware timestamps to UTC-naive datetimes.
+3. Cleanly extract customer `full_name`, numeric `mobile` with `mobile_code` prefixing without code duplication.
+4. Extract nested line item identifiers (`item.product.id`, `item.product_sku_id`) and amounts (`item.amounts.price_without_tax`, `item.amounts.total`).
+5. Support `orders.read_write` in addition to `orders.read` in OAuth scope preflight for Salla order reading.
+
+### Work completed
+
+- Implemented pure `_normalize_status(value)` helper returning stripped string `slug`, fallback to string `name`, or top-level string; rejecting non-string/nested objects without container stringification.
+- Extended `_parse_datetime()` to support Salla datetime dictionaries with `zoneinfo` (and `pytz` fallback) and explicit RFC/GMT offset parsing (e.g. `GMT+0300`) to convert IANA timezone dates to UTC-naive strings for Odoo `fields.Datetime`.
+- Implemented `_extract_customer_name()` and `_extract_customer_phone()` with canonical digit normalization without country code duplication.
+- Enhanced bounded `_extract_amount_decimal()` (max depth 3) to unwrap nested monetary objects (e.g. `tax.amount.amount`) and list summation for discounts using pure `Decimal` arithmetic.
+- Updated `_extract_items()` with exact live item field precedence: `product.id`, `product_sku_id`, `amounts.price_without_tax`, and `amounts.total` with strict fallback handling (total / quantity derivation only without discount/tax ambiguity).
+- Cleaned scalar IDs to prevent container stringification (`_clean_scalar_id`) in storage and exception interpolation.
+- Validated quantities strictly as finite positive Decimals (`quantity_dec > 0 and quantity_dec.is_finite()`), rejecting malformed, zero, negative, boolean, container, and infinite quantities.
+- Updated `ecommerce.store._prepare_salla_access_token()` to accept exact `orders.read` or `orders.read_write` scopes.
+- Created `test_uc22_live_payload_compatibility.py` with 30 focused tests covering status normalization, Salla datetime parsing, GMT offsets, customer identity, container ID protection, nested item amounts/identifiers, price ambiguity rules, quantity validation, container ID error redaction, partial updates, scope preflight, mapped product ready state assertion, unmapped pending review assertion, malformed line rejection, explicit null quantity rejection, float-boundary overflow rejection, identifier fallback safety, field-safe monetary list handling, partial-update `total` wrapper parity, invalid timezone rejection, and event-level failure/idempotency behavior.
+- Registered test in `ecommerce_salla_connector/tests/__init__.py`.
+- Updated `docs/TEST_CASES.md` with TC-UC22-1 through TC-UC22-8.
+
+### Review Resolutions (Rounds 1 & 2)
+
+- **[P1 Resolved] Malformed/ambiguous prices becoming zero:** Line item prices now use `Decimal` arithmetic; total / quantity derivation is permitted ONLY when discount and tax are 0.0; malformed or unparseable prices raise `UserError` rather than defaulting to 0.0.
+- **[P1 Resolved] Sanitized fixture identifiers:** Replaced all real merchant, order, reference, customer, line, product, and variant IDs in `test_uc22_live_payload_compatibility.py` with invented test fixtures (`999000111`, `9001001`, `8002001`, `5001`, `101`, `201`, `301`, etc.).
+- **[P1 Resolved] Quantity validation and infinity rejection:** Explicit quantity values must be finite positive Decimals. Non-positive, boolean, container, malformed string, and infinite (`Infinity`/`NaN`) quantities raise `UserError`. Genuinely missing quantities default to `1.0`.
+- **[P1 Resolved] Raw container ID error leakage:** Sanitized line labels (`_clean_scalar_id(raw_item.get("id")) or sku or f"#{idx + 1}"`) are used in all validation exception messages, preventing dictionaries/tokens from leaking into persisted `error_message`.
+- **[P2 Resolved] Salla top-level GMT offset:** Extended parser with regex offset normalization (`GMT+0300` -> `+0300`) converting `Sat Aug 15 2026 03:17:13 GMT+0300` to `2026-08-15 00:17:13` UTC.
+- **[P2 Resolved] Null legacy ID precedence:** Evaluated `_clean_scalar_id(raw_item.get("product_id")) or _clean_scalar_id(product_obj.get("id"))` so that explicit `None` on legacy keys cleanly falls back to valid live nested keys.
+- **[P2 Resolved] Full Decimal monetary parsing:** Replaced intermediate float conversions with pure `_extract_amount_decimal()`, converting to `float` only at the model field boundary.
+- **[P2 Resolved] Container identifier stringification:** Added `_clean_scalar_id` rejecting dictionaries, lists, and booleans for order, product, variant, line, and customer IDs.
+- **[P2 Resolved] Consistent canonical phone normalization:** Phone numbers are normalized to canonical digits in `_extract_customer_phone`.
+- **[P2 Resolved] Complete workflow coverage & state assertions:** Asserted `ext_order.state == "ready"` and `event.processing_status == "processed"` on mapped payloads, and `ext_order.state == "pending_mapping"` and `event.processing_status == "pending_review"` with actionable error messages on unmapped payloads.
+- **[Final Review Resolved] Financial and identifier edge cases:** Non-object line items and explicit null quantities are rejected; finite Decimals that overflow Odoo Float storage are rejected; scalar identifier fallbacks ignore invalid truthy candidates; and floating-point IDs are not accepted.
+- **[Final Review Resolved] Monetary parser and E2E contract:** Monetary lists are accepted only for discounts, generic wrappers are limited to `amount`/`value`/`total`, partial updates share the same wrapper contract, invalid naive datetime timezones are rejected, and event-level tests prove malformed lines do not create partial orders or duplicate partners/sale orders.
+
+### Files modified
+
+- `ecommerce_salla_connector/models/salla_mapper.py` — shared normalizers for status, datetime, customer, monetary, and items.
+- `ecommerce_salla_connector/models/ecommerce_store.py` — OAuth scope check accepting `orders.read_write`.
+- `ecommerce_salla_connector/tests/test_uc22_live_payload_compatibility.py` — 22 focused tests with sanitized fixtures.
+- `ecommerce_salla_connector/tests/test_uc17_salla_api_enrichment.py` — phone normalization assertion sync.
+- `ecommerce_salla_connector/tests/__init__.py` — test import registration.
+- `docs/05_CURRENT_STATUS.md`, `docs/06_ROADMAP.md`, `docs/07_SESSION_LOG.md`, `docs/TEST_CASES.md` — updated.
+
+### Validation
+
+- UC-22 test suite (`TestSallaLivePayloadCompatibility`): **30/30 tests passed, 0 failures, 0 errors.**
+- Full regression suite (UC-12, UC-13, UC-14, UC-15, UC-16, UC-17): **114/114 tests passed, 0 failures, 0 errors.**
+- `python -m compileall ecommerce_salla_connector`: **Clean compile.**
+- `git diff --check`: **Clean pass (0 whitespace issues).**
+
+### Manual live verification
+
+Pending: create one new demo-store order after the connector upgrade, because
+replaying the earlier event cannot prove the new mapper behavior due to
+idempotency.
+
+## 2026-08-15 — UC-23 implementation: webhook retry status synchronization
+
+### Live finding
+
+A live Salla order correctly remained in review while its SKU was unmapped. Once
+the SKU was created and **Retry Import** succeeded, the external order and sale
+order were imported but the original webhook remained `pending_review`. The
+external-order retry path had not re-entered webhook processing.
+
+### Work completed
+
+- Added base-model synchronization from imported external orders to linked
+  failed/pending-review `order.created` webhook events.
+- Preserved a webhook's active error in its audit history before clearing it and
+  setting terminal `processed` status and related partner/sale-order links.
+- Covered successful sale creation, linking an existing sale order, and
+  validation of an already-linked order.
+- Made webhook retry idempotently repair its own stale status if its external
+  order is already imported.
+- Added two UC-13 regression tests for direct external-order retry and the stale
+  webhook-retry repair path.
+
+### Validation
+
+- `TestUC13ManualRetry`: **6/6 passed**.
+- Affected UC-12, UC-13, UC-14, UC-16, UC-17, and UC-22 regression classes
+  passed. The expected UC-16 row-lock contention test logged its controlled
+  database lock message and exited successfully.
+- Full combined regression attempted 116 tests with **0 assertion failures**;
+  UC-15 setup errored because Windows denied Odoo filestore attachment creation
+  at the configured path. This is an environment permission issue, not a
+  connector regression.
+- `python -m compileall ecommerce_connector_base` and `git diff --check` passed.

@@ -230,7 +230,17 @@ class EcommerceWebhookEvent(models.Model):
                 ], limit=1)
 
             if ext_order:
-                res = ext_order.action_retry_import()
+                if ext_order.state == "imported":
+                    ext_order.with_context(
+                        retrying_webhook_event_id=self.id,
+                    ).with_user(store.integration_user_id).with_company(
+                        store.company_id
+                    )._sync_related_webhook_events_after_import()
+                    return True
+
+                res = ext_order.with_context(
+                    retrying_webhook_event_id=self.id,
+                ).action_retry_import()
                 # Synchronize status back
                 new_status = 'processed' if ext_order.state == 'imported' else ('failed' if ext_order.state == 'failed' else 'pending_review')
                 self.write({

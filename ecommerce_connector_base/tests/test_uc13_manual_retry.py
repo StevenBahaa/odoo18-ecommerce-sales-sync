@@ -148,3 +148,74 @@ class TestUC13ManualRetry(TransactionCase):
         self.assertEqual(external_order.retry_count, 1)
         self.assertIn('Initial mapping error', external_order.error_history)
         self.assertIn('Customer matching failed', external_order.error_message)
+
+    def test_05_external_order_retry_closes_linked_webhook(self):
+        """Resolving mapping from the order form also resolves its webhook."""
+        ext_order = self.env['ecommerce.external.order'].create({
+            'store_id': self.store.id,
+            'external_order_id': 'EXT-RETRY-5',
+            'state': 'pending_mapping',
+            'partner_id': self.partner.id,
+            'line_ids': [(0, 0, {
+                'external_line_id': 'EXT-RETRY-5-line-1',
+                'external_sku': 'RETRY-WEBHOOK-SKU',
+                'product_name': 'Retry Webhook Product',
+                'quantity': 1.0,
+                'unit_price': 100.0,
+                'state': 'pending_mapping',
+            })],
+        })
+        event = self.env['ecommerce.webhook.event'].create({
+            'store_id': self.store.id,
+            'event_type': 'order.created',
+            'external_order_id': ext_order.external_order_id,
+            'related_external_order_id': ext_order.id,
+            'processing_status': 'pending_review',
+            'error_message': 'Unmapped lines detected: EXT-RETRY-5-line-1',
+        })
+
+        self.env['product.product'].create({
+            'name': 'Retry Webhook Product',
+            'default_code': 'RETRY-WEBHOOK-SKU',
+            'type': 'consu',
+        })
+
+        ext_order.with_user(self.manager).action_retry_import()
+
+        self.assertEqual(ext_order.state, 'imported')
+        self.assertEqual(event.processing_status, 'processed')
+        self.assertEqual(event.related_partner_id, ext_order.partner_id)
+        self.assertEqual(event.related_sale_order_id, ext_order.sale_order_id)
+        self.assertFalse(event.error_message)
+        self.assertIn('Unmapped lines detected', event.error_history)
+
+    def test_06_webhook_retry_repairs_already_imported_order(self):
+        """A stale review webhook can be retried after direct order import."""
+        sale_order = self.env['sale.order'].create({
+            'partner_id': self.partner.id,
+            'company_id': self.company.id,
+        })
+        ext_order = self.env['ecommerce.external.order'].create({
+            'store_id': self.store.id,
+            'external_order_id': 'EXT-RETRY-6',
+            'state': 'imported',
+            'partner_id': self.partner.id,
+            'sale_order_id': sale_order.id,
+        })
+        event = self.env['ecommerce.webhook.event'].create({
+            'store_id': self.store.id,
+            'event_type': 'order.created',
+            'external_order_id': ext_order.external_order_id,
+            'related_external_order_id': ext_order.id,
+            'processing_status': 'pending_review',
+            'error_message': 'Product mapping required before import.',
+        })
+
+        event.with_user(self.manager).action_retry_processing()
+
+        self.assertEqual(event.processing_status, 'processed')
+        self.assertEqual(event.retry_count, 1)
+        self.assertEqual(event.related_partner_id, self.partner)
+        self.assertEqual(event.related_sale_order_id, sale_order)
+        self.assertFalse(event.error_message)
+        self.assertIn('Product mapping required', event.error_history)

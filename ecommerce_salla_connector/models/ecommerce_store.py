@@ -1,5 +1,6 @@
 import logging
 import psycopg2
+from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 
 from odoo import api, fields, models, _
@@ -37,6 +38,41 @@ class EcommerceStore(models.Model):
         groups="ecommerce_connector_base.group_ecommerce_integration_manager",
     )
 
+    last_salla_api_call_at = fields.Datetime(
+        string="Last Salla API Call",
+        readonly=True,
+        copy=False,
+        groups="ecommerce_connector_base.group_ecommerce_integration_manager",
+    )
+
+    salla_api_rate_limit_limit = fields.Integer(
+        string="Salla API Rate Limit",
+        readonly=True,
+        copy=False,
+        groups="ecommerce_connector_base.group_ecommerce_integration_manager",
+    )
+
+    salla_api_rate_limit_remaining = fields.Integer(
+        string="Salla API Rate Remaining",
+        readonly=True,
+        copy=False,
+        groups="ecommerce_connector_base.group_ecommerce_integration_manager",
+    )
+
+    salla_api_rate_limit_reset_at = fields.Datetime(
+        string="Salla API Rate Reset",
+        readonly=True,
+        copy=False,
+        groups="ecommerce_connector_base.group_ecommerce_integration_manager",
+    )
+
+    salla_api_retry_after_at = fields.Datetime(
+        string="Salla API Retry After",
+        readonly=True,
+        copy=False,
+        groups="ecommerce_connector_base.group_ecommerce_integration_manager",
+    )
+
     oauth_credential_state = fields.Selection([
         ("not_salla", "Not Applicable"),
         ("mock", "Mock"),
@@ -58,7 +94,15 @@ class EcommerceStore(models.Model):
     )
 
     def _check_sensitive_field_access(self, vals_list):
-        salla_sensitive = {"token_refresh_requires_reauthorization", "last_token_refresh_error"}
+        salla_sensitive = {
+            "token_refresh_requires_reauthorization",
+            "last_token_refresh_error",
+            "last_salla_api_call_at",
+            "salla_api_rate_limit_limit",
+            "salla_api_rate_limit_remaining",
+            "salla_api_rate_limit_reset_at",
+            "salla_api_retry_after_at",
+        }
         for vals in vals_list:
             if salla_sensitive.intersection(vals.keys()):
                 self._ensure_integration_manager()
@@ -482,3 +526,82 @@ class EcommerceStore(models.Model):
                 "note": f"Store {store.name} requires attention: {reason_code}.",
                 "date_deadline": fields.Date.context_today(store),
             })
+
+    def _ensure_salla_api_caller(self):
+        self.ensure_one()
+        if not (
+            self.env.su
+            or self.env.user.has_group(
+                "ecommerce_connector_base.group_ecommerce_integration_manager"
+            )
+        ):
+            raise AccessError(_("Only Integration Managers may initiate Salla API calls."))
+        return True
+
+    def _update_salla_api_usage_metadata(self, metadata):
+        self.ensure_one()
+        allowed_keys = {
+            "last_salla_api_call_at",
+            "salla_api_rate_limit_limit",
+            "salla_api_rate_limit_remaining",
+            "salla_api_rate_limit_reset_at",
+            "salla_api_retry_after_at",
+        }
+        write_vals = {k: v for k, v in metadata.items() if k in allowed_keys}
+        if write_vals:
+            self.sudo().write(write_vals)
+            self.invalidate_recordset(allowed_keys)
+
+    def _prepare_salla_access_token(self):
+        self.ensure_one()
+        self._ensure_salla_api_caller()
+
+        if self.platform != "salla":
+            raise UserError(_("Store platform is not salla."))
+        if self.environment == "mock":
+            raise UserError(_("Mock environment cannot make live Salla API calls."))
+        if not self.active:
+            raise UserError(_("Store is archived."))
+        if self.token_refresh_requires_reauthorization:
+            raise UserError(_("Credentials require reauthorization. Cannot make API requests."))
+        if self.token_refresh_lock:
+            raise UserError(_("A token refresh is currently in progress."))
+
+        now = fields.Datetime.now()
+        if self.salla_api_retry_after_at and self.salla_api_retry_after_at > now:
+            from .salla_client import SallaAPIError
+            raise SallaAPIError(
+                _("Salla API request cooldown active until %s.") % fields.Datetime.to_string(self.salla_api_retry_after_at),
+                code="cooldown",
+                retry_after_at=self.salla_api_retry_after_at
+            )
+
+        scopes = set((self.oauth_scope or "").split())
+        if not ({"orders.read", "orders.read_write"} & scopes):
+            raise UserError(_("Store was not authorized with orders.read or orders.read_write scope."))
+
+        near_expiry_threshold = now + timedelta(seconds=60)
+        needs_refresh = (
+            not self.access_token
+            or not self.access_token_expires_at
+            or self.access_token_expires_at <= near_expiry_threshold
+        )
+
+        if needs_refresh:
+            self._refresh_salla_token()
+            self.invalidate_recordset([
+                "access_token",
+                "access_token_expires_at",
+                "token_refresh_requires_reauthorization",
+            ])
+
+        if not self.access_token or self.access_token == "[REDACTED]":
+            raise UserError(_("Missing or invalid access token."))
+
+        if (
+            not self.access_token_expires_at
+            or self.access_token_expires_at <= fields.Datetime.now() + timedelta(seconds=60)
+        ):
+            raise UserError(_("Access token is expired or expires too soon."))
+
+        return self.access_token

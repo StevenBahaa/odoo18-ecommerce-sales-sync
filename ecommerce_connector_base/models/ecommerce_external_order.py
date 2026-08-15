@@ -679,6 +679,36 @@ class EcommerceExternalOrder(models.Model):
             vals['warning_message'] = warning_message
 
         self.write(vals)
+        self._sync_related_webhook_events_after_import()
+
+    def _sync_related_webhook_events_after_import(self):
+        """Close review webhooks once their staged order is imported.
+
+        Operators can resolve a mapping issue and retry from the external-order
+        form.  That path does not re-enter the webhook processor, so its linked
+        ``order.created`` event needs an explicit, auditable terminal update.
+        """
+        self.ensure_one()
+        if self.state != "imported":
+            return
+
+        events = self.env["ecommerce.webhook.event"].search([
+            ("related_external_order_id", "=", self.id),
+            ("event_type", "=", "order.created"),
+            ("processing_status", "in", ("pending_review", "failed")),
+        ])
+
+        for event in events:
+            # Webhook retry has already recorded its own audit snapshot.
+            if event.id != self.env.context.get("retrying_webhook_event_id"):
+                event._snapshot_error()
+            event.write({
+                "processing_status": "processed",
+                "related_partner_id": self.partner_id.id or False,
+                "related_sale_order_id": self.sale_order_id.id or False,
+                "error_message": False,
+                "processed_at": fields.Datetime.now(),
+            })
 
     def action_validate(self):
         self.ensure_one()
@@ -690,6 +720,7 @@ class EcommerceExternalOrder(models.Model):
                 'warning_message': f"This order is already linked to sale order {self.sale_order_id.name}. Re-import blocked.",
                 'last_processed_at': fields.Datetime.now()
             })
+            self._sync_related_webhook_events_after_import()
             return
 
         # Step 2 — Database duplicate check on sale.order
@@ -751,6 +782,7 @@ class EcommerceExternalOrder(models.Model):
         self.ensure_one()
 
         if self.sale_order_id:
+            self._sync_related_webhook_events_after_import()
             return self.action_open_sale_order()
 
         duplicate = self._find_existing_sale_order()
@@ -822,6 +854,7 @@ class EcommerceExternalOrder(models.Model):
                     write_vals['warning_message'] = combined.strip()
 
                 self.write(write_vals)
+                self._sync_related_webhook_events_after_import()
 
         except Exception as e:
             self.write({

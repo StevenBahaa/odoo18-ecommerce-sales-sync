@@ -174,7 +174,26 @@ flowchart LR
     Retry --> User
 ~~~
 
-The controller uses narrow privileged operations for store lookup/configuration/audit. Business work is intended to run as the configured integration user. Manager UI visibility is not the authorization control: retry methods also enforce groups in Python.
+The controller uses narrow privileged operations for store lookup/configuration/audit. Business work is intended to run as the configured integration user. Manager UI visibility is not the authorization control: retry and enrichment methods also enforce groups in Python.
+
+## Salla API client and order enrichment architecture (UC-17)
+
+~~~mermaid
+flowchart TD
+    Manager["Integration Manager"] --> Action["action_enrich_from_salla()"]
+    Action --> Preflight["_prepare_salla_access_token()"]
+    Preflight -->|Valid token| Client["EcommerceSallaClient._request()"]
+    Preflight -->|Expired / Near-expiry| Lock["_refresh_salla_token() (FOR UPDATE NOWAIT)"]
+    Lock --> Client
+    Client --> API["Salla Merchant API (/orders/{id})"]
+    API --> RateHeaders["Rate-Limit & Cooldown Metadata"]
+    RateHeaders --> Store["ecommerce.store (metadata update)"]
+    API --> Mapper["_parse_order_details_payload()"]
+    Mapper --> LockOrder["Row Lock & Stale/Currency Check"]
+    LockOrder --> Enrich["Atomic Update of Staged Fields & Audit"]
+~~~
+
+The Salla API client is strictly GET-only and manual. It enforces integration-manager authorization, access-token preflight with single-use refresh token locking, safe error mapping (masking credentials), rate-limit cooldown persistence, and atomic row-locked stale-response protection without modifying linked sale orders or raw webhook payloads.
 
 ## Deferred architecture
 
@@ -182,7 +201,7 @@ The controller uses narrow privileged operations for store lookup/configuration/
 | --- | --- | --- |
 | OAuth authorization | Store token fields and authorize sample payload | UC-15 |
 | Token refresh | Store lock/timestamp fields | UC-16 |
-| Live Salla API client | Abstract client raises deferred error | UC-17 |
+| Live Salla API client | Merchant API GET client & order enrichment | UC-17 |
 | Stock readiness | Store policy field | UC-18 |
 | Reporting | Model foundations only | UC-19 |
 
