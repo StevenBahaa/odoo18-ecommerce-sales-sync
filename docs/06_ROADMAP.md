@@ -16,23 +16,20 @@ This combines the local UC plan with code currently present on <code>develop</co
 
 | UC-16 | Token refresh locking/expiry warnings and credential safety UX. |
 | UC-17 | Salla API client and optional enrichment: GET-only Merchant API client, token preflight with single-use refresh lock, allowlisted Order Details mapper, rate-limit cooldown persistence, and stale/currency row-lock protection. |
+| UC-18 | Stock readiness and inventory reservation policies: stock_sync_policy gate in action_create_sale_order(), warehouse-scoped free_qty check, product aggregation, float_compare UOM rounding, with_company scoping, and fail-closed no-warehouse behavior. |
 | UC-22 | Salla live payload compatibility and status normalization: strict shared status normalizer, Salla datetime object parsing with timezone conversion to UTC, customer identity/mobile normalization, nested product/variant ID and line amount mapping, orders.read_write OAuth scope preflight. |
 | UC-23 | Webhook retry status synchronization: direct external-order retry and webhook retry now converge the related `order.created` event to `processed` after a successful import. |
 
 ## Next
 
-### UC-18 — Stock Readiness and Inventory Reservation Policies
+### UC-19 — Connector Reporting and Dashboards
 
-Implement stock readiness policies and inventory availability checks:
-- Verify physical stock availability in mapped warehouse before sale order confirmation.
-- Configurable store stock policies (auto-reserve, stock warning guard).
-- Prevent overselling and flag staged orders with insufficient stock.
+Define sales reconciliation, sync volume, error rate metrics, and platform reporting views.
 
 ## Future
 
 | UC | Theme | Current evidence |
 | --- | --- | --- |
-| UC-18 | Stock readiness | Store policy field exists; fulfillment logic scheduled. |
 | UC-19 | Reporting | Records support reporting; dedicated reporting absent. |
 | UC-20 | Demo data/scripts | Mock payloads/wizard exist; full demo bootstrap absent. |
 | UC-21 | Documentation/release polish | Durable docs now exist; release work remains. |

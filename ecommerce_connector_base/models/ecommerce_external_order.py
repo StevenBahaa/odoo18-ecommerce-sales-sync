@@ -1,6 +1,7 @@
 from psycopg2 import IntegrityError
 from odoo import models, fields, api, _
 from odoo.exceptions import AccessError, UserError
+from odoo.tools import float_compare
 from ..utils.phone_utils import normalize_phone_digits
 
 
@@ -653,7 +654,7 @@ class EcommerceExternalOrder(models.Model):
                 'tag': 'display_notification',
                 'params': {
                     'title': 'Retry Finished',
-                    'message': f'Order is still in {self.state} state. Error: {self.error_message}',
+                    'message': f'Order is still in {self.state} state. Error/Warning: {self.error_message or self.warning_message}',
                     'type': 'warning',
                     'sticky': False,
                 }
@@ -778,6 +779,109 @@ class EcommerceExternalOrder(models.Model):
             'last_processed_at': fields.Datetime.now()
         })
 
+    def _check_stock_readiness(self):
+        """Check unreserved physical stock for all storable lines in the store's default warehouse.
+
+        Behaviour by policy:
+          - stock_sync_policy == 'none':
+                Always returns True (check disabled).
+          - stock_sync_policy == 'readiness_only', no warehouse configured:
+                Parks the order in pending_review. Returns False.
+          - stock_sync_policy == 'readiness_only', warehouse configured:
+                Aggregates ordered quantities by product_id.
+                For each storable product (product.is_storable == True), compares aggregated
+                quantity against free_qty (on-hand minus reservations), scoped to the order
+                company and store warehouse, using float_compare at UOM rounding precision.
+                Parks in pending_review if any product is short. Returns False.
+                Returns True if all storable products are sufficiently stocked.
+
+        Returns:
+            bool: True if import may proceed, False if order is parked.
+        """
+        self.ensure_one()
+
+        policy = self.store_id.stock_sync_policy
+        if policy == 'none':
+            return True
+
+        warehouse = self.store_id.default_warehouse_id
+        if not warehouse:
+            no_wh_msg = (
+                "Stock readiness policy is active but no warehouse is configured on this store.\n"
+                "Order parked for review. Configure a warehouse on the store to proceed."
+            )
+            self.write({
+                "state": "pending_review",
+                "error_message": no_wh_msg,
+                "last_processed_at": fields.Datetime.now(),
+            })
+            return False
+
+        # --- Aggregate ordered quantities by product_id (storable products only) ---
+        aggregated = {}  # {product_id: {"product": rec, "ordered": float, "label": str, "sku": str}}
+        for line in self.line_ids:
+            product = line.product_id
+            if not product:
+                continue
+            if not product.is_storable:
+                continue
+            pid = product.id
+            if pid not in aggregated:
+                aggregated[pid] = {
+                    "product": product,
+                    "ordered": 0.0,
+                    "label": line.product_name or product.display_name,
+                    "sku": line.external_sku or product.default_code or "",
+                }
+            aggregated[pid]["ordered"] += line.quantity
+
+        if not aggregated:
+            return True  # No storable lines — nothing to check
+
+        # --- Compare aggregated qty against free_qty (warehouse-scoped, company-scoped) ---
+        short_lines = []
+        for pid, info in aggregated.items():
+            product = info["product"]
+            free_qty = (
+                product
+                .with_company(self.company_id)
+                .with_context(warehouse_id=warehouse.id)
+                .free_qty
+            )
+            rounding = product.uom_id.rounding
+            if float_compare(info["ordered"], free_qty, precision_rounding=rounding) > 0:
+                short_lines.append({
+                    "name": info["label"],
+                    "sku": info["sku"],
+                    "ordered": info["ordered"],
+                    "available": free_qty,
+                })
+
+        if not short_lines:
+            return True
+
+        # --- Build warning message and park ---
+        shortage_parts = []
+        for s in short_lines:
+            sku_part = f" (SKU: {s['sku']})" if s["sku"] else ""
+            shortage_parts.append(
+                f"  - Product \"{s['name']}\"{sku_part}: "
+                f"ordered {s['ordered']}, unreserved available {s['available']}"
+            )
+
+        stock_warning = (
+            f"Stock warning (warehouse: {warehouse.name}):\n"
+            + "\n".join(shortage_parts)
+            + "\nOrder parked for review. Resolve stock shortage or disable stock check to proceed."
+        )
+
+        self.write({
+            "state": "pending_review",
+            "error_message": stock_warning,
+            "last_processed_at": fields.Datetime.now(),
+        })
+        return False
+
     def action_create_sale_order(self):
         self.ensure_one()
 
@@ -792,6 +896,10 @@ class EcommerceExternalOrder(models.Model):
 
         if self.state != 'ready':
             raise UserError("This external order must be in 'Ready' state before creating a sale order.")
+
+        # UC-18 — Stock readiness gate
+        if not self._check_stock_readiness():
+            return False
 
         so_vals = {
             'partner_id':                    self.partner_id.id,
