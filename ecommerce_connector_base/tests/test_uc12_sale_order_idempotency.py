@@ -16,7 +16,7 @@ class TestUC12SaleOrderIdempotency(TransactionCase):
             'company_id': cls.company.id,
             'discount_strategy': 'line_discount',
             'order_import_policy': 'manual_validate',
-            'stock_sync_policy': 'none',
+            'stock_sync_policy': 'readiness_only',
         })
 
         cls.partner = cls.env['res.partner'].create({
