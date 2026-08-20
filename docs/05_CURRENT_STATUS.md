@@ -26,11 +26,11 @@ Evidence: current <code>develop</code> branch, implementation, targeted tests, G
 | UC-15 | Secure OAuth authorization handling | Authorization-only transient credentials, redacted audit payloads, store lock/watermark, narrow sudo helper, and 17 focused tests. |
 | UC-16 | Token refresh locking/expiry warnings | Token refresh concurrency locks, strict response parser, expiry warning cron, UX alerts, and 15 focused tests. |
 | UC-17 | Salla API client and optional enrichment | Safe GET-only Merchant API client, token preflight with single-use refresh lock, allowlisted Order Details mapper, rate-limit cooldown persistence, stale/currency row-lock protection, and 43 focused tests covering 44 behaviors. |
-| UC-18 | Stock Readiness and Inventory Reservation Policies | stock_sync_policy gate in action_create_sale_order(); warehouse-scoped free_qty check with per-product aggregation, float_compare rounding, with_company scoping, fail-closed no-warehouse behavior; 19 focused unit tests. |
+| UC-18 | Stock Readiness and Inventory Reservation Policies | stock_sync_policy gate in action_create_sale_order(); warehouse-scoped free_qty check with per-product aggregation, float_compare rounding, with_company scoping, fail-closed no-warehouse behavior, warning_message advisory handling with automatic cleanup on resolution/policy change; 21 focused unit tests. |
 | UC-22 | Salla Live Payload Compatibility and Status Normalization | Strict shared status normalizer (slug -> name string hierarchy), timezone-aware Salla datetime parsing, customer identity/mobile normalization, context-safe monetary parsing, nested product/variant ID and line amount mapping, strict malformed-line/quantity/float-boundary validation, and orders.read_write OAuth scope preflight support. |
 | UC-23 | Webhook retry status synchronization | Imported external orders now close their linked failed/pending-review order-created webhooks, preserve webhook error audit history, and allow idempotent repair from either retry entry point. |
 
-UC-18 implementation validated: 19/19 focused tests passed, all regression tests (UC-12 through UC-22, 152 total tests) passed.
+UC-18 implementation validated: 21/21 focused tests passed, all regression tests (UC-12 through UC-22) passed.
 
 ## Features in progress
 

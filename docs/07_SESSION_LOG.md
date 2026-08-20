@@ -499,3 +499,36 @@ Implement a stock readiness gate in `action_create_sale_order()` to prevent over
 - Full regression suite (UC-12 through UC-22 across all modules): **152/152 passed, 0 failures, 0 errors.**
 - `python -m compileall ecommerce_connector_base ecommerce_salla_connector`: **Clean pass (0 errors).**
 - `git diff --check`: **Clean pass (0 whitespace issues).**
+
+## 2026-08-20 — UC-18 refinement: warehouse scoping & stale warning cleanup
+
+### Goal
+
+Fix stock readiness context key scoping in Odoo 18, use `warning_message` for stock advisories to match `pending_review` conventions, append rather than overwrite existing advisories, and ensure stale stock warnings are cleanly stripped on resolution/policy change.
+
+### Work completed
+
+- Fixed context key in `_check_stock_readiness()`: passed both `warehouse` and `warehouse_id` to ensure compatibility with Odoo 18's `_get_domain_locations()` which checks `warehouse_id`.
+- Migrated stock readiness shortage and no-warehouse notices from `error_message` to `warning_message`, consistent with `pending_review` state conventions.
+- Added `_strip_stock_warning(self, text)` helper to cleanly isolate and remove stock/no-warehouse warning blocks while preserving pre-existing non-stock advisories (such as currency mismatches).
+- Updated `_check_stock_readiness()` on all paths:
+  - On shortage: strips prior stock warning block before appending fresh shortage text (avoids message duplication on repeated checks).
+  - On success (sufficient stock or no storable lines): strips prior stock warning block and cleans `warning_message` (sets `False` if empty or restores original advisory).
+  - On policy `'none'`: strips prior stock warning block and clears stale warning.
+- Expanded `ecommerce_connector_base/tests/test_uc18_stock_readiness.py` from 19 to 21 tests:
+  - Updated `test_19` to verify rechecks update shortage numbers without duplication, and resolution clears stock warning while preserving currency advisory.
+  - Added `test_20` covering store policy change from `'readiness_only'` to `'none'` clearing stale stock warnings.
+  - Added `test_21` testing `_strip_stock_warning` helper directly against multiple advisory formats.
+- Updated documentation in `docs/TEST_CASES.md`, `docs/05_CURRENT_STATUS.md`, `docs/07_SESSION_LOG.md`.
+
+### Files modified
+
+- `ecommerce_connector_base/models/ecommerce_external_order.py` — added `_strip_stock_warning()`, updated `_check_stock_readiness()` context keys and cleanup on success/none.
+- `ecommerce_connector_base/tests/test_uc18_stock_readiness.py` — updated assertions, expanded to 21 tests.
+- `docs/TEST_CASES.md` — updated UC-18 test specifications.
+- `docs/05_CURRENT_STATUS.md` — updated UC-18 status summary and test count.
+- `docs/07_SESSION_LOG.md` — recorded session changes.
+
+### Validation
+
+- `TestUC18StockReadiness`: **21/21 passed, 0 failures, 0 errors.**

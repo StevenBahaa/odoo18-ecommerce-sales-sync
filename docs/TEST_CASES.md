@@ -214,19 +214,19 @@ second sale order; the retry audit and previous error history remain available.
 `stock_sync_policy = "none"`, zero stock. Verify sale order created without stock warning.
 
 ### TC-UC18-2 — No Warehouse: Fail Closed
-`readiness_only`, no warehouse. Verify parked in `pending_review`; no SO; "no warehouse is configured" in error_message.
+`readiness_only`, no warehouse. Verify parked in `pending_review`; no SO; "no warehouse is configured" in `warning_message`.
 
 ### TC-UC18-3 — Sufficient Free Stock Allows Import
 `readiness_only` + warehouse + `free_qty >= ordered` for all storables. Verify SO created, no stock warning.
 
 ### TC-UC18-4 — Insufficient Stock Parks Order
-`free_qty < ordered` for a storable. Verify `pending_review`, no SO, error_message names product+ordered+unreserved+warehouse.
+`free_qty < ordered` for a storable. Verify `pending_review`, no SO, `warning_message` names product+ordered+unreserved+warehouse.
 
 ### TC-UC18-5 — All Stock Reserved Parks Order
-On-hand stock exists but fully reserved (`free_qty=0`). Verify parked.
+On-hand stock exists but fully reserved (`free_qty=0`). Verify parked in `pending_review`.
 
 ### TC-UC18-6 — Partially Reserved: Only Free Qty Counts
-4 on-hand, 3 reserved (1 free), order requests 2. Verify parked.
+4 on-hand, 3 reserved (1 free), order requests 2. Verify parked in `pending_review`.
 
 ### TC-UC18-7 — Non-Storable Consumable Never Triggers Warning
 `is_storable=False` consumable lines only. Verify SO created.
@@ -240,14 +240,14 @@ One short storable + one service. Verify parked, storable named, service not nam
 ### TC-UC18-10 — Exact Free Stock Match Allows Import
 `free_qty == ordered`. Verify SO created.
 
-### TC-UC18-11 — Stock Warning Distinct from Warning Message
-Pre-existing currency warning + zero free stock. Verify warning remains in `warning_message` while stock reason is in `error_message`.
+### TC-UC18-11 — Stock Warning Appended, Existing Warning Preserved
+Pre-existing currency warning + zero free stock. Verify both exist in `warning_message` and `error_message` is untouched.
 
 ### TC-UC18-12 — Duplicate Product Lines Aggregated
-Two lines same product, combined qty > free_qty. Verify parked; aggregated qty in error_message.
+Two lines same product, combined qty > free_qty. Verify parked; aggregated qty in `warning_message`.
 
-### TC-UC18-13 — Warehouse Context Key `warehouse_id`
-Stock only in second warehouse; store uses first. Verify parked.
+### TC-UC18-13 — Warehouse Context Key `warehouse`
+Stock only in second warehouse (same company); store uses first (0 stock). Verify parked; context key `warehouse` properly scopes stock computation.
 
 ### TC-UC18-14 — UOM Rounding Boundary Passes
 `free_qty` within half UOM rounding unit of ordered. `float_compare` treats as equal; SO created.
@@ -256,7 +256,7 @@ Stock only in second warehouse; store uses first. Verify parked.
 Park an order due to shortage (`pending_review`). Resolve stock. Call `action_retry_import()` (as the store's Connector Manager). Verify the order transitions through `captured` -> `ready` -> `imported`, and that a sale order is created.
 
 ### TC-UC18-16 — Retry When Stock Still Short
-Same as TC-UC18-15 but do not resolve stock. Verify order reparks in `pending_review` and `error_message` contains the shortage reason.
+Same as TC-UC18-15 but do not resolve stock. Verify order reparks in `pending_review` and `warning_message` contains the shortage reason.
 
 ### TC-UC18-17 — Multi-Company Stock Scoped
 Stock only in second company's WH. Order in first company. Verify parked.
@@ -264,5 +264,11 @@ Stock only in second company's WH. Order in first company. Verify parked.
 ### TC-UC18-18 — Retry Notification Displays Warning
 Trigger a retry while stock is short. Verify the returned UI dictionary includes the stock warning in its message.
 
-### TC-UC18-19 — Validate Clears Old Stock Warning
-Park due to shortage, resolve stock, manually validate, then create SO. Verify `error_message` is cleared during validation and SO is created.
+### TC-UC18-19 — Stock Recheck and Resolution Cleans Warning
+Park due to shortage with pre-existing currency advisory. Recheck with partial stock updates shortage numbers without duplicating warnings. When stock resolved, verify stock warning is cleared while preserving currency advisory.
+
+### TC-UC18-20 — Switch Policy to None Clears Stale Stock Warning
+Order with stale stock warning transitions to imported when policy changed to 'none' and stock warning is stripped from `warning_message`.
+
+### TC-UC18-21 — Strip Stock Warning Helper
+Unit test verifying `_strip_stock_warning` removes stock shortage and no-warehouse blocks while preserving non-stock advisories.
