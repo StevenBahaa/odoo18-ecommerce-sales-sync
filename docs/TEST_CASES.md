@@ -272,3 +272,33 @@ Order with stale stock warning transitions to imported when policy changed to 'n
 
 ### TC-UC18-21 — Strip Stock Warning Helper
 Unit test verifying `_strip_stock_warning` removes stock shortage and no-warehouse blocks while preserving non-stock advisories.
+
+## UC-19 — Reporting and Manager Views
+
+### TC-UC19-1 — Connector-Only User Can Read E-commerce Sale Orders
+A user with only `group_ecommerce_connector_user` (no Sales-app group) can read a `sale.order`
+record linked to an e-commerce store, via the new access right.
+
+### TC-UC19-2 — Connector-Only User Cannot Write Sale Orders
+The same user cannot write any field on a `sale.order` record — the new access right is read-only.
+
+### TC-UC19-3 — Connector-Only User Cannot Create Sale Orders
+The same user cannot create a new `sale.order` record — the new access right grants no create
+permission.
+
+### TC-UC19-4 — Imported Sale Orders Domain Excludes Non-E-commerce Orders
+`action_ecommerce_sale_order`'s domain includes an order with `ecommerce_store_id` set and
+excludes a plain, manually created sale order with no `ecommerce_store_id`.
+
+### TC-UC19-5 — Orders by Store & Status Exposes Pivot and Graph
+`action_ecommerce_external_order_report`'s `view_mode` includes both `pivot` and `graph`.
+
+### TC-UC19-6 — Webhook Health Exposes Pivot and Graph
+`action_ecommerce_webhook_event_report`'s `view_mode` includes both `pivot` and `graph`.
+
+### TC-UC19-7 — Imported Sale Orders Exposes Pivot and Graph
+`action_ecommerce_sale_order`'s `view_mode` includes both `pivot` and `graph`.
+
+### TC-UC19-8 — Reporting Menu Items Exist and Point to the Correct Actions
+The "Reporting" menu section and its three child menu items exist and each resolves to the
+expected action.

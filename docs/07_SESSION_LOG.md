@@ -532,3 +532,38 @@ Fix stock readiness context key scoping in Odoo 18, use `warning_message` for st
 ### Validation
 
 - `TestUC18StockReadiness`: **21/21 passed, 0 failures, 0 errors.**
+
+## 2026-08-20 — UC-19 implementation: reporting and manager views
+
+### Goal
+
+Give store managers and connector users portfolio-quality, screenshot-ready visibility into e-commerce sync health inside Odoo's native UI: order volume/value by store and status, webhook delivery health by store and status, and the sale orders that actually resulted from e-commerce imports.
+
+### Work completed
+
+- Added pivot & graph views and `action_ecommerce_external_order_report` ("Orders by Store & Status") for `ecommerce.external.order`.
+- Added pivot & graph views and `action_ecommerce_webhook_event_report` ("Webhook Health") for `ecommerce.webhook.event`.
+- Created `ecommerce_connector_base/views/sale_order_views.xml` with list, search, pivot, graph views, and `action_ecommerce_sale_order` ("Imported Sale Orders") filtered to `[('ecommerce_store_id', '!=', False)]`.
+- Added read-only `sale.order` access right in `ir.model.access.csv` for `group_ecommerce_connector_user` (and inherited manager tiers via `implied_ids`), allowing pure connector users to view imported sale orders without granting write/create access.
+- Added new "Reporting" top-level menu section (`menu_ecommerce_connector_reporting`) in `ecommerce_connector_base/views/ecommerce_menu.xml` with three child menu items for the reporting actions.
+- Created `ecommerce_connector_base/tests/test_uc19_reporting_manager_views.py` with 8 focused unit tests.
+- Registered view in manifest and test in `tests/__init__.py`.
+- Updated documentation in `docs/TEST_CASES.md`, `docs/05_CURRENT_STATUS.md`, `docs/06_ROADMAP.md`, `docs/07_SESSION_LOG.md`.
+
+### Files modified
+
+- `ecommerce_connector_base/views/ecommerce_external_order_views.xml` — added pivot/graph views and reporting action.
+- `ecommerce_connector_base/views/ecommerce_webhook_event_views.xml` — added pivot/graph views and reporting action.
+- `ecommerce_connector_base/views/sale_order_views.xml` — new file for imported sale orders reporting.
+- `ecommerce_connector_base/__manifest__.py` — registered sale_order_views.xml.
+- `ecommerce_connector_base/security/ir.model.access.csv` — added read-only sale.order access rule.
+- `ecommerce_connector_base/views/ecommerce_menu.xml` — added Reporting menu section and 3 items.
+- `ecommerce_connector_base/tests/test_uc19_reporting_manager_views.py` — 8 focused unit tests.
+- `ecommerce_connector_base/tests/__init__.py` — registered test suite.
+- `docs/TEST_CASES.md`, `docs/05_CURRENT_STATUS.md`, `docs/06_ROADMAP.md`, `docs/07_SESSION_LOG.md` — updated status, roadmap, test cases, and log.
+
+### Validation
+
+- `TestUC19ReportingManagerViews`: **8/8 passed, 0 failures, 0 errors.**
+- `python -m compileall ecommerce_connector_base`: **Clean pass (0 errors).**
+- `git diff --check`: **Clean pass (0 whitespace issues).**

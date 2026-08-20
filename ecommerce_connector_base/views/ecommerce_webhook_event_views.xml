@@ -165,4 +165,42 @@
         </field>
     </record>
 
+    <record id="view_ecommerce_webhook_event_pivot" model="ir.ui.view">
+        <field name="name">ecommerce.webhook.event.pivot</field>
+        <field name="model">ecommerce.webhook.event</field>
+        <field name="arch" type="xml">
+            <pivot string="Webhook Events by Store and Status" sample="1">
+                <field name="store_id" type="row"/>
+                <field name="processing_status" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_ecommerce_webhook_event_graph" model="ir.ui.view">
+        <field name="name">ecommerce.webhook.event.graph</field>
+        <field name="model">ecommerce.webhook.event</field>
+        <field name="arch" type="xml">
+            <graph string="Webhook Events by Store and Status" type="bar" sample="1">
+                <field name="store_id" type="row"/>
+                <field name="processing_status" type="col"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_ecommerce_webhook_event_report" model="ir.actions.act_window">
+        <field name="name">Webhook Health</field>
+        <field name="res_model">ecommerce.webhook.event</field>
+        <field name="view_mode">pivot,graph,list,form</field>
+        <field name="search_view_id" ref="view_ecommerce_webhook_event_search"/>
+        <field name="context">{'search_default_group_by_store': 1, 'search_default_group_by_status': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No webhook events yet.
+            </p>
+            <p>
+                Analyze webhook delivery health grouped by store and processing status.
+            </p>
+        </field>
+    </record>
+
 </odoo>

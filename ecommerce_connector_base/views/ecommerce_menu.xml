@@ -53,6 +53,41 @@
     />
 
     <menuitem
+        id="menu_ecommerce_connector_reporting"
+        name="Reporting"
+        parent="menu_ecommerce_connector_root"
+        sequence="50"
+        groups="ecommerce_connector_base.group_ecommerce_connector_user"
+    />
+
+    <menuitem
+        id="menu_ecommerce_external_order_report"
+        name="Orders by Store &amp; Status"
+        parent="menu_ecommerce_connector_reporting"
+        action="action_ecommerce_external_order_report"
+        sequence="10"
+        groups="ecommerce_connector_base.group_ecommerce_connector_user"
+    />
+
+    <menuitem
+        id="menu_ecommerce_webhook_event_report"
+        name="Webhook Health"
+        parent="menu_ecommerce_connector_reporting"
+        action="action_ecommerce_webhook_event_report"
+        sequence="20"
+        groups="ecommerce_connector_base.group_ecommerce_connector_user"
+    />
+
+    <menuitem
+        id="menu_ecommerce_sale_order"
+        name="Imported Sale Orders"
+        parent="menu_ecommerce_connector_reporting"
+        action="action_ecommerce_sale_order"
+        sequence="30"
+        groups="ecommerce_connector_base.group_ecommerce_connector_user"
+    />
+
+    <menuitem
         id="menu_ecommerce_connector_configuration"
         name="Configuration"
         parent="menu_ecommerce_connector_root"
