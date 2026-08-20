@@ -24,7 +24,7 @@ class TestUC12WebhookIdempotency(TransactionCase):
             'company_id': cls.company.id,
             'discount_strategy': 'line_discount',
             'order_import_policy': 'manual_validate',
-            'stock_sync_policy': 'readiness_only',
+            'stock_sync_policy': 'none',
         })
         cls.store.with_user(cls.integration_user).write({
             'integration_user_id': cls.integration_user.id,

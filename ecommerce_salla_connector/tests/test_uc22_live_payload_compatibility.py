@@ -130,6 +130,7 @@ class TestSallaLivePayloadCompatibility(TransactionCase):
             "refresh_token": "refresh_sanitized",
             "oauth_scope": "offline_access orders.read_write",
             "oauth_token_type": "bearer",
+            "stock_sync_policy": "none",
             "access_token_expires_at": fields.Datetime.now() + timedelta(days=10),
             "refresh_token_expires_at": fields.Datetime.now() + relativedelta(months=1),
         })

@@ -27,7 +27,7 @@ class TestUC14OrderStatusUpdates(TransactionCase):
             "company_id": cls.company.id,
             "discount_strategy": "line_discount",
             "order_import_policy": "manual_validate",
-            "stock_sync_policy": "readiness_only",
+            "stock_sync_policy": "none",
         })
         cls.store.with_user(cls.integration_user).write({
             "integration_user_id": cls.integration_user.id,
@@ -351,7 +351,7 @@ class TestUC14OrderStatusUpdates(TransactionCase):
             "company_id": self.company.id,
             "discount_strategy": "line_discount",
             "order_import_policy": "manual_validate",
-            "stock_sync_policy": "readiness_only",
+            "stock_sync_policy": "none",
         })
         other_store.with_user(self.integration_user).write({
             "integration_user_id": self.integration_user.id,
