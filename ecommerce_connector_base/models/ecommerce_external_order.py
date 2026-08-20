@@ -779,29 +779,58 @@ class EcommerceExternalOrder(models.Model):
             'last_processed_at': fields.Datetime.now()
         })
 
+    _STOCK_WARNING_MARKER = "Stock warning (warehouse:"
+    _NO_WAREHOUSE_MARKER = "Stock readiness policy is active but no warehouse"
+
+    def _strip_stock_warning(self, text):
+        """Remove any previously-appended stock-readiness warning block from warning_message,
+        leaving other warnings (e.g. currency) untouched."""
+        if not text:
+            return ""
+        lines = text.split("\n")
+        kept = []
+        skipping = False
+        for line in lines:
+            if line.startswith(self._STOCK_WARNING_MARKER) or line.startswith(self._NO_WAREHOUSE_MARKER):
+                skipping = True
+                continue
+            if skipping and (line.strip().startswith("- Product") or "Order parked for review." in line):
+                continue  # per-line shortage detail or trailer, still part of the block
+            skipping = False
+            kept.append(line)
+        return "\n".join(kept).strip()
+
     def _check_stock_readiness(self):
         """Check unreserved physical stock for all storable lines in the store's default warehouse.
 
         Behaviour by policy:
           - stock_sync_policy == 'none':
-                Always returns True (check disabled).
+                Clears any stale stock warning if present. Always returns True (check disabled).
           - stock_sync_policy == 'readiness_only', no warehouse configured:
-                Parks the order in pending_review. Returns False.
+                Parks the order in pending_review with an advisory in warning_message.
+                Returns False. (Fail-closed: a misconfigured store must not bypass stock checks.)
           - stock_sync_policy == 'readiness_only', warehouse configured:
                 Aggregates ordered quantities by product_id.
                 For each storable product (product.is_storable == True), compares aggregated
                 quantity against free_qty (on-hand minus reservations), scoped to the order
-                company and store warehouse, using float_compare at UOM rounding precision.
-                Parks in pending_review if any product is short. Returns False.
-                Returns True if all storable products are sufficiently stocked.
+                company and store warehouse via with_context(warehouse=...) and float_compare
+                at UOM rounding precision.
+                Parks in pending_review with warning_message (appended to any existing
+                clean warning_message) if any product is short. Returns False.
+                Returns True and clears any stale stock warning if all storable products are
+                sufficiently stocked.
 
         Returns:
             bool: True if import may proceed, False if order is parked.
         """
         self.ensure_one()
 
+        clean_existing = self._strip_stock_warning(self.warning_message)
+
         policy = self.store_id.stock_sync_policy
         if policy == 'none':
+            if clean_existing != (self.warning_message or ""):
+                self.write({"warning_message": clean_existing or False})
             return True
 
         warehouse = self.store_id.default_warehouse_id
@@ -810,9 +839,10 @@ class EcommerceExternalOrder(models.Model):
                 "Stock readiness policy is active but no warehouse is configured on this store.\n"
                 "Order parked for review. Configure a warehouse on the store to proceed."
             )
+            combined = f"{clean_existing}\n{no_wh_msg}".strip() if clean_existing else no_wh_msg
             self.write({
                 "state": "pending_review",
-                "error_message": no_wh_msg,
+                "warning_message": combined,
                 "last_processed_at": fields.Datetime.now(),
             })
             return False
@@ -836,16 +866,20 @@ class EcommerceExternalOrder(models.Model):
             aggregated[pid]["ordered"] += line.quantity
 
         if not aggregated:
+            if clean_existing != (self.warning_message or ""):
+                self.write({"warning_message": clean_existing or False})
             return True  # No storable lines — nothing to check
 
         # --- Compare aggregated qty against free_qty (warehouse-scoped, company-scoped) ---
+        # NOTE: In Odoo 18 stock/models/product.py, _get_domain_locations reads 'warehouse_id'.
+        # We pass both 'warehouse' and 'warehouse_id' for maximum compatibility.
         short_lines = []
         for pid, info in aggregated.items():
             product = info["product"]
             free_qty = (
                 product
                 .with_company(self.company_id)
-                .with_context(warehouse_id=warehouse.id)
+                .with_context(warehouse=warehouse.id, warehouse_id=warehouse.id)
                 .free_qty
             )
             rounding = product.uom_id.rounding
@@ -858,9 +892,11 @@ class EcommerceExternalOrder(models.Model):
                 })
 
         if not short_lines:
+            if clean_existing != (self.warning_message or ""):
+                self.write({"warning_message": clean_existing or False})
             return True
 
-        # --- Build warning message and park ---
+        # --- Build stock warning and park; append to any pre-existing clean warning_message ---
         shortage_parts = []
         for s in short_lines:
             sku_part = f" (SKU: {s['sku']})" if s["sku"] else ""
@@ -875,9 +911,10 @@ class EcommerceExternalOrder(models.Model):
             + "\nOrder parked for review. Resolve stock shortage or disable stock check to proceed."
         )
 
+        combined = f"{clean_existing}\n{stock_warning}".strip() if clean_existing else stock_warning
         self.write({
             "state": "pending_review",
-            "error_message": stock_warning,
+            "warning_message": combined,
             "last_processed_at": fields.Datetime.now(),
         })
         return False
