@@ -35,6 +35,12 @@ def get_sanitized_live_salla_order_payload():
                 "slug": "under_review",
                 "customized": {"id": 2001, "name": "Custom Review"}
             },
+            "payment_method": "bank",
+            "shipping_status": {
+                "id": 3001,
+                "name": "Shipping Ready",
+                "slug": "shipping_ready"
+            },
             "currency": "SAR",
             "amounts": {
                 "sub_total": {"amount": 372.0, "currency": "SAR"},
@@ -764,3 +770,112 @@ class TestSallaLivePayloadCompatibility(TransactionCase):
             ]),
             sale_order_count,
         )
+
+    # =========================================================================
+    # 31-35: payment_method / shipping_status Fallback Compatibility
+    # =========================================================================
+
+    def test_31_payment_status_falls_back_to_payment_method(self):
+        """31. When payment_status is absent, payment_method populates payment_status."""
+        payload = get_sanitized_live_salla_order_payload()
+        payload["data"].pop("payment_status", None)
+        parsed = self.mapper._parse_order_payload(payload)
+        order = parsed["order"]
+
+        self.assertEqual(order["payment_status"], "bank")
+        # The shipping_status fallback still resolves fulfillment_status
+        self.assertEqual(order["fulfillment_status"], "shipping_ready")
+
+    def test_32_explicit_status_fields_win_over_fallbacks(self):
+        """32. Explicit payment_status/fulfillment_status take precedence over fallback keys."""
+        payload = get_sanitized_live_salla_order_payload()
+        payload["data"]["payment_status"] = "paid"
+        payload["data"]["fulfillment_status"] = "fulfilled"
+        parsed = self.mapper._parse_order_payload(payload)
+        order = parsed["order"]
+
+        self.assertEqual(order["payment_status"], "paid")
+        self.assertEqual(order["fulfillment_status"], "fulfilled")
+
+    def test_33_fulfillment_status_falls_back_to_shipping_status_object(self):
+        """33. A shipping_status status object populates fulfillment_status via its slug."""
+        payload = get_sanitized_live_salla_order_payload()
+        payload["data"].pop("payment_method", None)
+        parsed = self.mapper._parse_order_payload(payload)
+        order = parsed["order"]
+
+        # Fixture still carries shipping_status
+        self.assertEqual(order["fulfillment_status"], "shipping_ready")
+        # No explicit or fallback payment source remains
+        self.assertFalse(order["payment_status"])
+
+    def test_34_partial_update_uses_fallback_keys_and_stays_strict(self):
+        """34. Partial updates accept payment_method/shipping_status fallbacks and reject malformed ones."""
+        update_payload = {
+            "event": "order.updated",
+            "merchant": 999000111,
+            "data": {
+                "id": 9001001,
+                "updated_at": "2026-08-15T04:00:00+03:00",
+                "payment_method": "credit_card",
+                "shipping_status": {"slug": "shipped"},
+            },
+        }
+        parsed = self.mapper._parse_partial_update_payload(update_payload)
+        self.assertEqual(parsed["update_vals"]["payment_status"], "credit_card")
+        self.assertEqual(parsed["update_vals"]["fulfillment_status"], "shipped")
+        self.assertNotIn("external_status", parsed["update_vals"])
+
+        # Explicit malformed primary key is still rejected strictly
+        bad_explicit = {
+            "event": "order.updated",
+            "merchant": 999000111,
+            "data": {
+                "id": 9001001,
+                "updated_at": "2026-08-15T04:00:00+03:00",
+                "payment_status": {"id": 123},
+                "payment_method": "credit_card",
+            },
+        }
+        with self.assertRaises(UserError):
+            self.mapper._parse_partial_update_payload(bad_explicit)
+
+        # Malformed fallback value is rejected too
+        bad_fallback = {
+            "event": "order.updated",
+            "merchant": 999000111,
+            "data": {
+                "id": 9001001,
+                "updated_at": "2026-08-15T04:00:00+03:00",
+                "payment_method": {"id": 123},
+            },
+        }
+        with self.assertRaises(UserError):
+            self.mapper._parse_partial_update_payload(bad_fallback)
+
+    def test_35_e2e_live_like_webhook_populates_statuses_from_real_field_names(self):
+        """35. The full webhook path stores payment/fulfillment statuses from real Salla field names."""
+        self.env["product.product"].create({
+            "name": "Payment Fallback Blouse",
+            "default_code": "SKU-BLOUSE-01",
+            "type": "consu",
+        })
+        self.env["product.product"].create({
+            "name": "Payment Fallback Trousers",
+            "default_code": "SKU-TROUSERS-01",
+            "type": "consu",
+        })
+        event = self.env["ecommerce.webhook.event"].create({
+            "store_id": self.store.id,
+            "event_type": "order.created",
+            "external_event_id": "EVT-LIVE-PAYMENT-FALLBACK-01",
+            "raw_payload": json.dumps(get_sanitized_live_salla_order_payload()),
+        })
+
+        event._apply_uc03_processing_gate()
+        ext_order = event.related_external_order_id
+        self.assertTrue(ext_order)
+        self.assertEqual(event.processing_status, "processed")
+        self.assertEqual(ext_order.state, "ready")
+        self.assertEqual(ext_order.payment_status, "bank")
+        self.assertEqual(ext_order.fulfillment_status, "shipping_ready")

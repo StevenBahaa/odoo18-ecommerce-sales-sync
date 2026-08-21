@@ -542,8 +542,14 @@ class EcommerceSallaMapper(models.AbstractModel):
                     or data.get("date")
                     or payload.get("created_at")
                 ),
-                "payment_status": self._normalize_status(data.get("payment_status")),
-                "fulfillment_status": self._normalize_status(data.get("fulfillment_status")),
+                # Real Salla payloads send payment_method/shipping_status rather
+                # than payment_status/fulfillment_status; fall back accordingly.
+                "payment_status": self._normalize_status(
+                    data.get("payment_status") or data.get("payment_method")
+                ),
+                "fulfillment_status": self._normalize_status(
+                    data.get("fulfillment_status") or data.get("shipping_status")
+                ),
                 "external_status": self._normalize_status(data.get("status")),
                 "total_amount": total_amount,
                 "shipping_amount": shipping_amount,
@@ -610,10 +616,14 @@ class EcommerceSallaMapper(models.AbstractModel):
             return normalized
 
         payment_status = _get_strict_status(data, "payment_status")
+        if payment_status is None and "payment_method" in data:
+            payment_status = _get_strict_status(data, "payment_method")
         if payment_status is not None:
             update_vals["payment_status"] = payment_status
 
         fulfillment_status = _get_strict_status(data, "fulfillment_status")
+        if fulfillment_status is None and "shipping_status" in data:
+            fulfillment_status = _get_strict_status(data, "shipping_status")
         if fulfillment_status is not None:
             update_vals["fulfillment_status"] = fulfillment_status
 

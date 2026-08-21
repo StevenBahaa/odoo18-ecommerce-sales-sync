@@ -20,19 +20,19 @@ This combines the local UC plan with code currently present on <code>develop</co
 | UC-19 | Reporting and manager views: native pivot/graph views for external orders and webhook events, dedicated "Imported Sale Orders" screen filtered to e-commerce orders, read-only sale.order access right for connector users, and new Reporting menu section. |
 | UC-22 | Salla live payload compatibility and status normalization: strict shared status normalizer, Salla datetime object parsing with timezone conversion to UTC, customer identity/mobile normalization, nested product/variant ID and line amount mapping, orders.read_write OAuth scope preflight. |
 | UC-23 | Webhook retry status synchronization: direct external-order retry and webhook retry now converge the related `order.created` event to `processed` after a successful import. |
+| UC-20 | Demo data, sample payloads, and scripts: payment_method/shipping_status mapper fallback for real payload field names; sanitized real-shape OAuth authorize sample plus new app.installed sample; two previously-orphaned payloads wired into the Mock Payload Lab; idempotent demo bootstrap (demo store, products, five webhook events, three external-order states) registered as Odoo demo data. |
 
 ## Next
 
-### UC-20 — Demo Data and Scripting
+### UC-21 — Documentation and Release Polish
 
-Full demo bootstrap, seed fixtures, and realistic multi-store/multi-order simulation data.
+README/TEST_CASES alignment through the current UC, CI wiring, and release packaging checks.
 
 ## Future
 
 | UC | Theme | Current evidence |
 | --- | --- | --- |
-| UC-20 | Demo data/scripts | Mock payloads/wizard exist; full demo bootstrap absent. |
-| UC-21 | Documentation/release polish | Durable docs now exist; release work remains. |
+| — | Order cancellation handling | order.cancelled is not routed by the webhook event dispatcher and has no dedicated business logic. A sample payload was deliberately not added in UC-20 because it would demo a no-op. Needs its own UC before a cancellation sample payload is meaningful. |
 
 ## Nice-to-have
 

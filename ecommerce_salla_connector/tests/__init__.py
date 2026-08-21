@@ -6,3 +6,4 @@ from . import test_uc15_controller_redaction
 from . import test_uc16_token_refresh
 from . import test_uc17_salla_api_enrichment
 from . import test_uc22_live_payload_compatibility
+from . import test_uc20_demo_data_bootstrap

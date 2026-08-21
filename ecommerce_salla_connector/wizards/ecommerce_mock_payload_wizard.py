@@ -22,6 +22,9 @@ class EcommerceMockPayloadWizard(models.TransientModel):
             ("salla_order_created", "Salla - order.created"),
             ("salla_order_created_same_customer_new_order", "Salla - order.created (TC-6)"),
             ("salla_order_updated", "Salla - order.updated"),
+            ("salla_order_missing_sku", "Salla - order.created (Missing SKU)"),
+            ("salla_order_multicurrency_sar", "Salla - order.created (Multi-currency SAR)"),
+            ("salla_app_installed", "Salla - app.installed"),
             ("salla_app_store_authorize", "Salla - app.store.authorize"),
             ("custom_json", "Custom JSON"),
         ],
@@ -114,6 +117,105 @@ class EcommerceMockPayloadWizard(models.TransientModel):
             "target": "current",
         }
 
+    @api.model
+    def action_bootstrap_demo_scenario(self):
+        """Idempotent UC-20 demo bootstrap. Creates one demo Salla store and walks it
+        through a realistic onboarding + order-sync sequence (app install -> OAuth
+        authorize -> three order.created payloads covering success, a pending-mapping
+        failure, and a currency-mismatch warning), producing screenshot-ready records.
+        Safe to call multiple times -- returns the existing demo store unchanged if it
+        was already bootstrapped.
+        """
+        store = self.env['ecommerce.store'].sudo().search([
+            ('store_identifier', '=', '999000111'),
+        ], limit=1)
+        if store:
+            return store
+
+        company = self.env.company
+
+        warehouse = self.env['stock.warehouse'].sudo().search([
+            ('company_id', '=', company.id),
+        ], limit=1)
+
+        Product = self.env['product.product'].sudo()
+
+        shipping_product = Product.search([
+            ('name', '=', 'Demo Shipping Fee'),
+            ('type', '=', 'service'),
+        ], limit=1)
+        if not shipping_product:
+            shipping_product = Product.create({
+                'name': 'Demo Shipping Fee',
+                'type': 'service',
+                'sale_ok': False,
+                'purchase_ok': False,
+            })
+
+        store = self.env['ecommerce.store'].sudo().create({
+            'name': 'UC-20 Demo Salla Store',
+            'platform': 'salla',
+            'environment': 'mock',
+            'store_identifier': '999000111',
+            'company_id': company.id,
+            'integration_user_id': self.env.user.id,
+            'stock_sync_policy': 'none',
+            'default_warehouse_id': warehouse.id if warehouse else False,
+            'shipping_product_id': shipping_product.id,
+        })
+
+        demo_products = {
+            'MOCK-SKU-001': 'Demo Product One',
+            'MOCK-SKU-002': 'Demo Product Two',
+            'MULTI-RED': 'Demo T-Shirt Red',
+            'MULTI-BLUE': 'Demo T-Shirt Blue',
+        }
+        for sku, name in demo_products.items():
+            # Get-or-create keeps the SKU lookup unambiguous when the database
+            # already contains products with these codes.
+            product = Product.search([('default_code', '=', sku)], limit=1)
+            if not product:
+                product = Product.create({
+                    'name': name,
+                    'default_code': sku,
+                    'type': 'consu',
+                    'is_storable': True,
+                })
+
+        Wizard = self.env['ecommerce.mock.payload.wizard'].sudo()
+
+        def _run(template):
+            wiz = Wizard.create({
+                'store_id': store.id,
+                'payload_template': template,
+            })
+            wiz.payload_json = wiz._get_sample_payload_content(template)
+            wiz.action_create_webhook_event()
+            return wiz
+
+        # 1. App installation notice -- no business effect, demonstrates graceful
+        #    handling of a recognized-but-unrouted event type.
+        _run('salla_app_installed')
+
+        # 2. OAuth authorization -- populates the store's token metadata.
+        _run('salla_app_store_authorize')
+
+        # 3. Clean success path -> fully imported sale order.
+        wiz_created = _run('salla_order_created')
+        created_order = wiz_created.created_event_id.related_external_order_id
+        if created_order and created_order.state == 'ready':
+            created_order.action_create_sale_order()
+
+        # 4. Missing-SKU path -> parked in pending_mapping, visible in the error queue.
+        _run('salla_order_missing_sku')
+
+        # 5. Multi-currency path -> validated to 'ready' with a currency-mismatch
+        #    warning automatically (via _match_products -> action_validate), deliberately
+        #    left un-imported so the warning banner is visible on screenshot.
+        _run('salla_order_multicurrency_sar')
+
+        return store
+
     def _parse_payload_json(self, payload_json):
         try:
             payload = json.loads(payload_json or "{}")
@@ -132,7 +234,9 @@ class EcommerceMockPayloadWizard(models.TransientModel):
             "salla_order_created": "salla_order_created.json",
             "salla_order_created_same_customer_new_order": "salla_order_created_same_customer_new_order.json",
             "salla_order_updated": "salla_order_updated.json",
-
+            "salla_order_missing_sku": "salla_order_missing_sku.json",
+            "salla_order_multicurrency_sar": "salla_order_multicurrency_sar.json",
+            "salla_app_installed": "salla_app_installed.json",
             "salla_app_store_authorize": "salla_app_store_authorize.json",
         }
 

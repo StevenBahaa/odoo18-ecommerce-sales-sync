@@ -1,11 +1,11 @@
 {
   "event": "app.store.authorize",
-  "merchant": "mock-store-001",
-  "created_at": "2030-01-01 10:00:00",
+  "merchant": 999000111,
+  "created_at": "2026-08-21 10:00:00",
   "data": {
-    "access_token": "mock-access-token-not-real",
-    "expires": 1893578400,
-    "refresh_token": "mock-refresh-token-not-real",
+    "access_token": "sanitized-access-token-not-real",
+    "expires": 1830297600,
+    "refresh_token": "sanitized-refresh-token-not-real",
     "scope": "orders.read offline_access",
     "token_type": "bearer"
   }
