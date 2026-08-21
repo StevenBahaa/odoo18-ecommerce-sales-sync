@@ -567,3 +567,127 @@ Give store managers and connector users portfolio-quality, screenshot-ready visi
 - `TestUC19ReportingManagerViews`: **8/8 passed, 0 failures, 0 errors.**
 - `python -m compileall ecommerce_connector_base`: **Clean pass (0 errors).**
 - `git diff --check`: **Clean pass (0 whitespace issues).**
+
+## 2026-08-21 — UC-20 implementation: demo data, sample payloads, and scripts
+
+### Goal
+
+Make the project demonstrable end-to-end without live Salla credentials: wire every shipped
+sample payload into the Mock Payload Lab, align OAuth samples with the real Salla shape using
+sanitized values, fix the payment/fulfillment status field-name gap against real payloads, and
+add an idempotent demo bootstrap producing screenshot-ready records.
+
+### Work completed
+
+- Mapper fallback: `_parse_order_payload()` now reads `payment_status` from `payment_method`
+  and `fulfillment_status` from `shipping_status` when the explicit fields are absent (real
+  Salla payloads never send `payment_status`/`fulfillment_status`).
+  `_parse_partial_update_payload()` accepts the same fallbacks while staying strict:
+  a malformed explicit key or malformed fallback value raises `UserError`.
+- Replaced `sample_payloads/salla_app_store_authorize.json` with the sanitized real-shape
+  version (bare-integer `merchant`, absolute Unix `expires`) and added
+  `sample_payloads/salla_app_installed.json`. Both use merchant `999000111` / app id
+  `555000111` with placeholder tokens only; no live capture data is present.
+- Wired `salla_order_missing_sku`, `salla_order_multicurrency_sar`, and `salla_app_installed`
+  into the Mock Payload Lab wizard selection and filename map. The authorize-timestamp refresh
+  guard remains limited to `salla_app_store_authorize`.
+- Added `action_bootstrap_demo_scenario()` to the wizard: idempotent (lookup by store
+  identifier `999000111`), creates a mock-mode demo store plus get-or-created demo products,
+  then runs app.installed → app.store.authorize → order.created (imported via explicit
+  `action_create_sale_order()`) → missing-SKU (pending_mapping) → multicurrency SAR
+  (ready with currency warning, left un-imported) through the standard
+  `action_create_webhook_event()` path.
+- Registered the bootstrap as Odoo demo data (`data/salla_demo_data.xml` + manifest `"demo"`
+  key); it never runs on production installs that opt out of demo data.
+- Added 5 mapper tests (`test_31`–`test_35`) to `test_uc22_live_payload_compatibility.py`,
+  extended its fixture with `payment_method`/`shipping_status`, and created
+  `test_uc20_demo_data_bootstrap.py` with 6 focused tests.
+- Updated `docs/TEST_CASES.md` (TC-UC20-1..6), `docs/05_CURRENT_STATUS.md`, `docs/06_ROADMAP.md`
+  (UC-20 completed; deliberate `order.cancelled` exclusion recorded).
+
+The real payload shapes used to identify the payment/fulfillment field-name gap and to build
+the sanitized OAuth samples came from an actual Salla demo-store connection; all customer PII
+and real tokens were stripped before anything was written to repository files.
+
+### Files modified
+
+- `ecommerce_salla_connector/models/salla_mapper.py` — payment_method/shipping_status fallbacks.
+- `ecommerce_salla_connector/tests/test_uc22_live_payload_compatibility.py` — fixture update + tests 31–35.
+- `ecommerce_salla_connector/sample_payloads/salla_app_store_authorize.json` — sanitized replacement.
+- `ecommerce_salla_connector/sample_payloads/salla_app_installed.json` — new sample.
+- `ecommerce_salla_connector/wizards/ecommerce_mock_payload_wizard.py` — template wiring + bootstrap method.
+- `ecommerce_salla_connector/data/salla_demo_data.xml` — new demo registration.
+- `ecommerce_salla_connector/__manifest__.py` — added `"demo"` key.
+- `ecommerce_salla_connector/tests/test_uc20_demo_data_bootstrap.py` — new, 6 tests.
+- `ecommerce_salla_connector/tests/__init__.py` — registered UC-20 test module.
+- `docs/TEST_CASES.md`, `docs/05_CURRENT_STATUS.md`, `docs/06_ROADMAP.md` — updated.
+
+### Important decisions
+
+- Demo store `store_identifier` fixed at `999000111` to satisfy the strict equality check in
+  `_process_salla_app_store_authorize`; coupled to both OAuth samples' `merchant` value.
+- Demo products use get-or-create by `default_code` instead of blind create: on databases that
+  already contain products with these codes, blind duplicates made the SKU fallback ambiguous.
+- Bootstrap reuses `action_create_webhook_event()` end-to-end so demo data can never drift from
+  real business logic; importing stays an explicit `action_create_sale_order()` call.
+- `salla_order_cancelled.json` deliberately not created: `order.cancelled` has no backing
+  business logic anywhere; recorded in the roadmap Future table.
+
+### Problems discovered
+
+- First focused-test run failed: this dev database already contained committed products with
+  `MOCK-SKU-001/002`; duplicate demo copies produced "Ambiguous SKU match" and parked the
+  success-path order in `pending_mapping`. Fixed via get-or-create product seeding.
+- Initial `test_35` forgot to seed matching products for the fixture SKUs (unlike tests 17/30);
+  the event correctly parked as `pending_review`. Fixed by creating the two products in-test.
+
+### Risks
+
+- The demo store identifier (`999000111`) is a magic string coupling the two OAuth payload files
+  and the bootstrap method; all three must change together.
+- If a developer's company currency is SAR, the currency-warning demo order imports cleanly with
+  no warning banner; accepted as harmless degradation for a portfolio demo.
+
+### Validation
+
+Ran on 2026-08-21 against `ecommerce_sales_sync_dev`:
+
+```
+python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d ecommerce_sales_sync_dev \
+  -u ecommerce_salla_connector --test-enable \
+  --test-tags /ecommerce_salla_connector:TestUC20DemoDataBootstrap \
+  --stop-after-init --no-http --log-level=error
+```
+
+Result: **6/6 tests passed, 0 failures, 0 errors.**
+
+Full regression suite (UC-12 through UC-20 base + Salla classes, both modules upgraded):
+
+```
+python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d ecommerce_sales_sync_dev \
+  -u ecommerce_connector_base,ecommerce_salla_connector --test-enable \
+  --test-tags /ecommerce_connector_base:TestUC12SaleOrderIdempotency,...,/ecommerce_salla_connector:TestUC20DemoDataBootstrap \
+  --stop-after-init --no-http
+```
+
+Result: **173 tests passed, 0 failures, 0 errors** (includes the expanded 35-test UC-22 suite).
+The post-run registry teardown noise (`cursor already closed`) after the result summary matches
+all previous sessions on this Windows setup and is not a test failure.
+
+- `python -m compileall ecommerce_salla_connector`: **Clean pass.**
+- `git diff --check`: **Clean pass (0 whitespace issues).**
+- Secrets check: `git grep "mock-access-token-not-real"` returns nothing; only sanitized
+  placeholder token strings ship in the two OAuth sample files.
+
+Not run: manual fresh-database demo walkthrough with demo data enabled (this dev database has
+demo data disabled, so the bootstrap was validated through the direct method calls in the UC-20
+tests rather than XML loading); live Salla verification remains out of scope for this UC.
+
+### Next recommended task
+
+Plan and implement UC-21 (documentation/release polish): README and TEST_CASES alignment, CI
+wiring, and packaging checks.
+
+### Questions for next session
+
+- None.

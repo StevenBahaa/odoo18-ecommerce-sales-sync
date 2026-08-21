@@ -302,3 +302,27 @@ excludes a plain, manually created sale order with no `ecommerce_store_id`.
 ### TC-UC19-8 — Reporting Menu Items Exist and Point to the Correct Actions
 The "Reporting" menu section and its three child menu items exist and each resolves to the
 expected action.
+
+## UC-20 — Demo Data, Sample Payloads, and Scripts
+
+### TC-UC20-1 — Orphaned Sample Payloads Are Now Wired
+`salla_order_missing_sku` and `salla_order_multicurrency_sar` are selectable in the Mock Payload
+Lab and load their real file content.
+
+### TC-UC20-2 — New app.installed Template Is Wired
+`salla_app_installed` is selectable and loads real file content.
+
+### TC-UC20-3 — Bootstrap Creates Expected Demo Records
+Calling the bootstrap once creates one demo store, five webhook events, and three external
+orders in states `imported`, `pending_mapping`, and `ready`.
+
+### TC-UC20-4 — Bootstrap Is Idempotent
+Calling the bootstrap twice does not create a second demo store or duplicate any webhook events.
+
+### TC-UC20-5 — OAuth Tokens Are Correctly Ingested From the Sanitized Payload
+The demo store's `access_token`/`refresh_token`/expiry fields are populated with the sanitized
+sample values after the bootstrap runs, confirming the authorize payload's `merchant` value
+correctly matched the demo store's `store_identifier`.
+
+### TC-UC20-6 — Imported Demo Order Has a Real Linked Sale Order
+The successful demo order actually produces a `sale.order` record, not just a state change.

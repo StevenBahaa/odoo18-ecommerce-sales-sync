@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <function model="ecommerce.mock.payload.wizard" name="action_bootstrap_demo_scenario"/>
+    </data>
+</odoo>

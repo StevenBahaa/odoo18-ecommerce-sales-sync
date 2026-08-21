@@ -1,0 +1,21 @@
+{
+  "event": "app.installed",
+  "merchant": 999000111,
+  "created_at": "2026-08-15 02:55:02",
+  "data": {
+    "id": 555000111,
+    "app_name": "Odoo sales Sync",
+    "app_description": "Syncs Salla store orders with Odoo ERP for order management and inventory sync",
+    "app_type": "private",
+    "app_scopes": [
+      "settings.read",
+      "customers.read_write",
+      "orders.read_write",
+      "products.read_write",
+      "webhooks.read_write",
+      "offline_access"
+    ],
+    "installation_date": "2026-08-14 02:15:17",
+    "store_type": "demo"
+  }
+}

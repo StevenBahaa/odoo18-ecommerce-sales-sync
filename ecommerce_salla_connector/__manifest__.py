@@ -14,6 +14,9 @@
         "views/ecommerce_mock_payload_wizard_views.xml",
         "views/ecommerce_external_order_views.xml",
     ],
+    "demo": [
+        "data/salla_demo_data.xml",
+    ],
     "installable": True,
     "application": False,
     "license": "LGPL-3",
