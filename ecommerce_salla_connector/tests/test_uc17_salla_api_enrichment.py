@@ -865,9 +865,15 @@ class TestUC17SallaAPIEnrichment(TransactionCase):
         """34. Currency mismatch fails enrichment and preserves staged values."""
         # Pin the staged order to SAR so the "USD" API response always mismatches,
         # regardless of what the CI runner's company currency is.
-        sar = self.env["res.currency"].search([("name", "=", "SAR"), ("active", "=", True)], limit=1)
+        # SAR always exists in Odoo's currency list but may be inactive — search
+        # with active_test=False to avoid a duplicate-key error on create.
+        sar = self.env["res.currency"].with_context(active_test=False).search(
+            [("name", "=", "SAR")], limit=1
+        )
         if not sar:
             sar = self.env["res.currency"].create({"name": "SAR", "symbol": "SAR", "active": True})
+        elif not sar.active:
+            sar.active = True
         self.external_order.currency_id = sar
 
         bad_data = dict(self.valid_order_details["data"])
