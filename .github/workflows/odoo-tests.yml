@@ -26,23 +26,40 @@ jobs:
     env:
       TEST_TAGS: "/ecommerce_connector_base:TestUC12SaleOrderIdempotency,/ecommerce_connector_base:TestUC13ManualRetry,/ecommerce_connector_base:TestUC18StockReadiness,/ecommerce_connector_base:TestUC19ReportingManagerViews,/ecommerce_salla_connector:TestUC12WebhookIdempotency,/ecommerce_salla_connector:TestUC13WebhookRetry,/ecommerce_salla_connector:TestUC14OrderStatusUpdates,/ecommerce_salla_connector:TestUC15OAuthAuthorization,/ecommerce_salla_connector:TestUC15ControllerRedaction,/ecommerce_salla_connector:TestUC16TokenRefresh,/ecommerce_salla_connector:TestUC17SallaAPIEnrichment,/ecommerce_salla_connector:TestSallaLivePayloadCompatibility,/ecommerce_salla_connector:TestUC20DemoDataBootstrap"
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout connector modules
+        uses: actions/checkout@v4
+        with:
+          path: custom_addons/odoo18-ecommerce-sales-sync
+
+      - name: Checkout Odoo 18 core
+        uses: actions/checkout@v4
+        with:
+          repository: odoo/odoo
+          ref: '18.0'
+          fetch-depth: 1
+          path: odoo
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: System deps for Odoo Python packages
-        run: sudo apt-get update && sudo apt-get install -y libldap2-dev libsasl2-dev
-      - name: Install Odoo 18
-        run: pip install "odoo>=18.0,<19"
-      - name: Locate core addons path
-        run: echo "CORE_ADDONS=$(python -c "import os, odoo; print(os.path.join(os.path.dirname(odoo.__file__), 'addons'))")" >> "$GITHUB_ENV"
+          cache: 'pip'
+          cache-dependency-path: odoo/requirements.txt
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libldap2-dev libsasl2-dev libpq-dev libxml2-dev libxslt1-dev
+
+      - name: Install Odoo Python requirements
+        run: pip install -r odoo/requirements.txt
+
       - name: Install modules and run focused regression
         run: >
-          python -m odoo
+          python odoo/odoo-bin
           -d ci-${{ github.run_id }}
-          --db-host localhost --db-port 5432
+          --db_host localhost --db_port 5432
           -r postgres -w postgres
-          --addons-path "${{ github.workspace }},${{ env.CORE_ADDONS }}"
+          --addons-path "odoo/addons,custom_addons/odoo18-ecommerce-sales-sync"
           -i ecommerce_connector_base,ecommerce_salla_connector
           --without-demo=all --max-cron-threads=0
           --test-enable --test-tags "${{ env.TEST_TAGS }}"

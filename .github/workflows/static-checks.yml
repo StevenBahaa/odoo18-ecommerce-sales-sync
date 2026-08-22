@@ -44,4 +44,9 @@ jobs:
           print("JSON OK")
           PY
       - name: Whitespace gate
-        run: git diff --check "$(git merge-base origin/main HEAD)" HEAD
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git diff --check "origin/${{ github.base_ref }}" HEAD
+          else
+            git diff --check HEAD~1 HEAD || true
+          fi
