@@ -53,12 +53,16 @@ jobs:
       - name: Install Odoo Python requirements
         run: pip install -r odoo/requirements.txt
 
+      - name: Create dedicated Odoo DB user
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE USER odoo WITH PASSWORD 'odoo' CREATEDB;"
+
       - name: Install modules and run focused regression
         run: >
           python odoo/odoo-bin
           -d ci-${{ github.run_id }}
           --db_host localhost --db_port 5432
-          -r postgres -w postgres
+          -r odoo -w odoo
           --addons-path "odoo/addons,custom_addons/odoo18-ecommerce-sales-sync"
           -i ecommerce_connector_base,ecommerce_salla_connector
           --without-demo=all --max-cron-threads=0
