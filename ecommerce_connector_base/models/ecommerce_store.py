@@ -24,6 +24,10 @@ class EcommerceStore(models.Model):
         "token_refresh_in_progress_at",
         "last_token_refresh_at",
         "integration_user_id",
+        "oauth_scope",
+        "oauth_token_type",
+        "last_oauth_authorized_at",
+        "last_oauth_authorize_event_id",
     }
 
     name = fields.Char(string="Store Name", required=True, tracking=True)
@@ -39,7 +43,7 @@ class EcommerceStore(models.Model):
         tracking=True,
         help="Technical platform handled by this store. Salla will be added by the Salla connector module."
         )
-    
+
     environment = fields.Selection(
             selection= [
                 ("mock", "Mock"),
@@ -51,20 +55,20 @@ class EcommerceStore(models.Model):
             tracking=True,
             help="Environment in which the store operates."
         )
-    
+
     store_identifier = fields.Char(
-        string="Store Identifier", 
-        index=True, tracking=True, 
+        string="Store Identifier",
+        index=True, tracking=True,
         help="External store identifier. For Mock Mode, this can be an internal demo code."
     )
 
     webhook_token = fields.Char(
-        string="Webhook Token", 
+        string="Webhook Token",
         readonly=True ,
         required=True ,
-        copy=False, 
+        copy=False,
         index=True,
-        tracking=True , 
+        tracking=True ,
         default=lambda self: self._generate_webhook_token(),
         help="Random URL token used to identify this store webhook endpoint.",)
 
@@ -83,7 +87,7 @@ class EcommerceStore(models.Model):
         copy=False,
         groups="ecommerce_connector_base.group_ecommerce_integration_manager",
     )
-    
+
     client_secret = fields.Char(
         copy=False,
         groups="ecommerce_connector_base.group_ecommerce_integration_manager",
@@ -109,6 +113,16 @@ class EcommerceStore(models.Model):
     refresh_token_expires_at = fields.Datetime(
         groups="ecommerce_connector_base.group_ecommerce_integration_manager",
     )
+
+    oauth_scope = fields.Char(copy=False, groups="ecommerce_connector_base.group_ecommerce_integration_manager")
+    oauth_token_type = fields.Char(copy=False, groups="ecommerce_connector_base.group_ecommerce_integration_manager")
+    last_oauth_authorized_at = fields.Datetime(
+        copy=False,
+        readonly=True,
+        groups="ecommerce_connector_base.group_ecommerce_integration_manager",
+        index=True
+    )
+    last_oauth_authorize_event_id = fields.Char(copy=False, readonly=True, groups="ecommerce_connector_base.group_ecommerce_integration_manager")
 
     token_refresh_lock = fields.Boolean(
         default=False,
@@ -171,6 +185,7 @@ class EcommerceStore(models.Model):
         default="manual_validate",
         required=True,
         tracking=True,
+        help="Manual Validation requires a manager to click 'Create Sale Order' when the order is Ready. Auto Import When Ready is reserved for a future UC and is currently inactive — selecting it has no effect.",
     )
     stock_sync_policy = fields.Selection(
         selection=[
@@ -226,7 +241,7 @@ class EcommerceStore(models.Model):
                 )
             else:
                 store.webhook_url = False
-            
+
     @api.model_create_multi
     def create(self, vals_list):
         self._check_sensitive_field_access(vals_list)
@@ -235,7 +250,7 @@ class EcommerceStore(models.Model):
     def write(self, vals):
         self._check_sensitive_field_access([vals])
         return super().write(vals)
-    
+
     def action_regenerate_webhook_token(self):
         self._ensure_integration_manager()
         for store in self:
@@ -249,8 +264,10 @@ class EcommerceStore(models.Model):
 
         if sensitive_keys:
             self._ensure_integration_manager()
-    
+
     def _ensure_integration_manager(self):
+        if self.env.su:
+            return
         if not self.env.user.has_group("ecommerce_connector_base.group_ecommerce_integration_manager"):
            raise AccessError(
                 _(

@@ -1,0 +1,49 @@
+name: odoo-tests
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      TEST_TAGS: "/ecommerce_connector_base:TestUC12SaleOrderIdempotency,/ecommerce_connector_base:TestUC13ManualRetry,/ecommerce_connector_base:TestUC18StockReadiness,/ecommerce_connector_base:TestUC19ReportingManagerViews,/ecommerce_salla_connector:TestUC12WebhookIdempotency,/ecommerce_salla_connector:TestUC13WebhookRetry,/ecommerce_salla_connector:TestUC14OrderStatusUpdates,/ecommerce_salla_connector:TestUC15OAuthAuthorization,/ecommerce_salla_connector:TestUC15ControllerRedaction,/ecommerce_salla_connector:TestUC16TokenRefresh,/ecommerce_salla_connector:TestUC17SallaAPIEnrichment,/ecommerce_salla_connector:TestSallaLivePayloadCompatibility,/ecommerce_salla_connector:TestUC20DemoDataBootstrap"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: System deps for Odoo Python packages
+        run: sudo apt-get update && sudo apt-get install -y libldap2-dev libsasl2-dev
+      - name: Install Odoo 18
+        run: pip install "odoo>=18.0,<19"
+      - name: Locate core addons path
+        run: echo "CORE_ADDONS=$(python -c "import os, odoo; print(os.path.join(os.path.dirname(odoo.__file__), 'addons'))")" >> "$GITHUB_ENV"
+      - name: Install modules and run focused regression
+        run: >
+          python -m odoo
+          -d ci-${{ github.run_id }}
+          --db-host localhost --db-port 5432
+          -r postgres -w postgres
+          --addons-path "${{ github.workspace }},${{ env.CORE_ADDONS }}"
+          -i ecommerce_connector_base,ecommerce_salla_connector
+          --without-demo=all --max-cron-threads=0
+          --test-enable --test-tags "${{ env.TEST_TAGS }}"
+          --stop-after-init --no-http --log-level=error

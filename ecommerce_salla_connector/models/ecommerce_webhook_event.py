@@ -3,26 +3,36 @@ import json
 from psycopg2 import IntegrityError
 
 from odoo import fields, models, _
+from odoo.exceptions import UserError
 
 
 class EcommerceWebhookEvent(models.Model):
     _inherit = "ecommerce.webhook.event"
 
-    def _process_business_event(self):
+    def action_retry_processing(self):
+        self.ensure_one()
+        self._ensure_retry_manager()
+        if self.event_type == "app.store.authorize":
+            raise UserError(_("Authorization events cannot be retried. Re-authorize or resend the event from Salla."))
+        return super().action_retry_processing()
+
+    def _process_business_event(self, processing_payload=None):
         supported_events = self.filtered(
             lambda event: event.store_id.platform in ("salla", "manual_mock")
         )
         other_events = self - supported_events
 
         if other_events:
-            super(EcommerceWebhookEvent, other_events)._process_business_event()
+            super(EcommerceWebhookEvent, other_events)._process_business_event(processing_payload=processing_payload)
 
         for event in supported_events:
-            event._process_salla_or_mock_event()
+            event._process_salla_or_mock_event(processing_payload=processing_payload)
 
-    def _process_salla_or_mock_event(self):
+    def _process_salla_or_mock_event(self, processing_payload=None):
         self.ensure_one()
 
+        # Persisted webhook data is redacted at ingress. Only authorization
+        # credential ingestion may consume the transient, unredacted payload.
         payload = self._load_json_payload()
         mapper = self.env["ecommerce.salla.mapper"]
         event_type = mapper._get_event_type(payload)
@@ -32,7 +42,19 @@ class EcommerceWebhookEvent(models.Model):
             return
 
         if event_type == "order.updated":
-            self._process_salla_order_updated_placeholder(payload)
+            self._process_salla_order_updated(payload)
+            return
+
+        if event_type == "app.store.authorize":
+            self._process_salla_app_store_authorize(processing_payload)
+            return
+
+        if event_type == "app.updated":
+            self.write({
+                "processing_status": "processed",
+                "error_message": False,
+                "processed_at": fields.Datetime.now(),
+            })
             return
 
         self.write({
@@ -56,6 +78,8 @@ class EcommerceWebhookEvent(models.Model):
         if existing_order:
             self.write({
                 "related_external_order_id": existing_order.id,
+                "related_partner_id": existing_order.partner_id.id if existing_order.partner_id else False,
+                "related_sale_order_id": existing_order.sale_order_id.id if existing_order.sale_order_id else False,
                 "processing_status": "duplicate",
                 "error_message": _(
                     "External order already exists for this store. "
@@ -128,6 +152,8 @@ class EcommerceWebhookEvent(models.Model):
 
             self.write({
                 "related_external_order_id": existing_order.id if existing_order else False,
+                "related_partner_id": existing_order.partner_id.id if existing_order and existing_order.partner_id else False,
+                "related_sale_order_id": existing_order.sale_order_id.id if existing_order and existing_order.sale_order_id else False,
                 "processing_status": "duplicate",
                 "error_message": _(
                     "External order already exists for this store. "
@@ -136,26 +162,61 @@ class EcommerceWebhookEvent(models.Model):
                 "processed_at": fields.Datetime.now(),
             })
             return
-            
+
         partner = external_order._match_or_create_customer()
         external_order._match_products()
-        
+
         status = "processed"
-        if external_order.state == "pending_review":
-            status = "pending_review"
+        error_msg = False
+
+        if external_order.state in ("pending_mapping", "pending_review", "failed"):
+            status = "pending_review" if external_order.state != "failed" else "failed"
+            error_msg = external_order.error_message or external_order.warning_message
 
         self.write({
             "related_external_order_id": external_order.id,
             "related_partner_id": partner.id if partner else False,
+            "related_sale_order_id": external_order.sale_order_id.id if external_order.sale_order_id else False,
             "processing_status": status,
-            "error_message": external_order.warning_message if status == "pending_review" else False,
+            "error_message": error_msg,
             "processed_at": fields.Datetime.now(),
         })
 
-    def _process_salla_order_updated_placeholder(self, payload):
+    def _process_salla_order_updated(self, payload):
         mapper = self.env["ecommerce.salla.mapper"]
-        parsed = mapper._parse_order_payload(payload)
-        external_order_id = parsed["order"]["external_order_id"]
+        try:
+            parsed = mapper._parse_partial_update_payload(payload)
+        except Exception as e:
+            self.write({
+                "processing_status": "pending_review",
+                "error_message": str(e),
+                "processed_at": fields.Datetime.now(),
+            })
+            return
+
+        external_order_id = parsed["external_order_id"]
+        external_event_time_str = parsed["external_event_time"]
+        currency_code = parsed["currency_code"]
+        update_vals = parsed["update_vals"]
+        event_id = parsed["event_id"]
+
+        if not external_event_time_str:
+            self.write({
+                "processing_status": "pending_review",
+                "error_message": _("Update event is missing a valid timestamp."),
+                "processed_at": fields.Datetime.now(),
+            })
+            return
+
+        if not update_vals:
+            self.write({
+                "processing_status": "pending_review",
+                "error_message": _("Update event contained no valid supported fields."),
+                "processed_at": fields.Datetime.now(),
+            })
+            return
+
+        has_amounts = any(k in update_vals for k in ("total_amount", "shipping_amount", "discount_amount", "tax_amount"))
 
         existing_order = self.env["ecommerce.external.order"].search([
             ("store_id", "=", self.store_id.id),
@@ -165,22 +226,83 @@ class EcommerceWebhookEvent(models.Model):
         if not existing_order:
             self.write({
                 "processing_status": "pending_review",
-                "error_message": _(
-                    "Received order.updated before order.created. "
-                    "Status update handling will be implemented in UC-14."
-                ),
+                "error_message": _("Update received for unknown order (received before order.created?)."),
                 "processed_at": fields.Datetime.now(),
             })
             return
 
         self.write({
             "related_external_order_id": existing_order.id,
-            "processing_status": "ignored",
-            "error_message": _(
-                "order.updated was recognized, but update handling is deferred to UC-14."
-            ),
-            "processed_at": fields.Datetime.now(),
+            "related_partner_id": existing_order.partner_id.id if existing_order.partner_id else False,
+            "related_sale_order_id": existing_order.sale_order_id.id if existing_order.sale_order_id else False,
         })
+
+        if has_amounts and (not currency_code or existing_order.currency_id.name != currency_code):
+            self.write({
+                "processing_status": "pending_review",
+                "error_message": _(
+                    "Update payload currency '%s' differs from staged order currency '%s'."
+                ) % (currency_code, existing_order.currency_id.name),
+                "processed_at": fields.Datetime.now(),
+            })
+            return
+
+        with self.env.cr.savepoint():
+            self.env.cr.execute(
+                "SELECT id FROM ecommerce_external_order WHERE id = %s FOR UPDATE",
+                (existing_order.id,)
+            )
+            existing_order.invalidate_recordset(["last_external_update_at", "last_external_update_event_id"])
+
+            incoming_time = fields.Datetime.from_string(external_event_time_str)
+            watermark_time = existing_order.last_external_update_at
+
+            if watermark_time:
+                if incoming_time < watermark_time:
+                    self.write({
+                        "processing_status": "pending_review",
+                        "error_message": _("Update is older than the last applied update."),
+                        "processed_at": fields.Datetime.now(),
+                    })
+                    return
+                if incoming_time == watermark_time:
+                    if event_id and existing_order.last_external_update_event_id == event_id:
+                        self.write({
+                            "processing_status": "duplicate",
+                            "error_message": _("Exact duplicate of the last applied update."),
+                            "processed_at": fields.Datetime.now(),
+                        })
+                        return
+                    else:
+                        self.write({
+                            "processing_status": "pending_review",
+                            "error_message": _("Ambiguous update: same timestamp but different/missing event ID."),
+                            "processed_at": fields.Datetime.now(),
+                        })
+                        return
+
+            write_vals = dict(update_vals)
+            write_vals["last_external_update_at"] = external_event_time_str
+            write_vals["last_external_update_event_id"] = event_id
+            write_vals["last_processed_at"] = fields.Datetime.now()
+
+            existing_order.write(write_vals)
+
+            if existing_order.sale_order_id:
+                so_vals = {}
+                if "payment_status" in update_vals:
+                    so_vals["ecommerce_payment_status"] = update_vals["payment_status"]
+                if "fulfillment_status" in update_vals:
+                    so_vals["ecommerce_fulfillment_status"] = update_vals["fulfillment_status"]
+
+                if so_vals:
+                    existing_order.sale_order_id.write(so_vals)
+
+            self.write({
+                "processing_status": "processed",
+                "error_message": False,
+                "processed_at": fields.Datetime.now(),
+            })
 
     def _load_json_payload(self):
         try:
@@ -209,3 +331,56 @@ class EcommerceWebhookEvent(models.Model):
             ) % currency_code
 
         return currency, False
+
+    def _process_salla_app_store_authorize(self, processing_payload):
+        if not processing_payload:
+            self.write({
+                "processing_status": "pending_review",
+                "error_message": _("Authorization credentials are not retained in the audit payload. Re-authorize or resend the event."),
+                "processed_at": fields.Datetime.now(),
+            })
+            return
+
+        mapper = self.env["ecommerce.salla.mapper"]
+        try:
+            parsed = mapper._parse_authorize_payload(processing_payload)
+        except Exception as e:
+            self.write({
+                "processing_status": "pending_review",
+                "error_message": str(e),
+                "processed_at": fields.Datetime.now(),
+            })
+            return
+
+        store = self.store_id
+        if store.platform != "salla":
+            self.write({
+                "processing_status": "pending_review",
+                "error_message": _("Store platform is not salla."),
+                "processed_at": fields.Datetime.now(),
+            })
+            return
+
+        if not store.store_identifier:
+            self.write({
+                "processing_status": "pending_review",
+                "error_message": _("Store identifier is not configured on the store."),
+                "processed_at": fields.Datetime.now(),
+            })
+            return
+
+        if store.store_identifier != parsed["merchant_identifier"]:
+            self.write({
+                "processing_status": "pending_review",
+                "error_message": _("Payload merchant identifier does not match the route-bound store identifier."),
+                "processed_at": fields.Datetime.now(),
+            })
+            return
+
+        result = store._apply_salla_authorization_credentials(parsed)
+
+        self.write({
+            "processing_status": result.get("status", "failed"),
+            "error_message": result.get("error_message", False),
+            "processed_at": fields.Datetime.now(),
+        })

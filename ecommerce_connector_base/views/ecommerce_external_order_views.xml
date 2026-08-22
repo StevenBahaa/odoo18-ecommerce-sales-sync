@@ -25,6 +25,8 @@
                 <field name="line_count"/>
                 <field name="payment_status"/>
                 <field name="fulfillment_status"/>
+                <field name="retry_count" optional="hide"/>
+                <field name="last_retry_at" optional="hide"/>
                 <field name="state"/>
                 <field name="company_id" groups="base.group_multi_company"/>
             </list>
@@ -54,11 +56,35 @@
                         groups="ecommerce_connector_base.group_ecommerce_connector_manager"
                     />
                     <button
+                        name="action_validate"
+                        string="Validate"
+                        type="object"
+                        class="btn-primary"
+                        invisible="state not in ('captured', 'pending_mapping', 'pending_review', 'failed')"
+                        groups="ecommerce_connector_base.group_ecommerce_connector_manager"
+                    />
+                    <button
+                        name="action_retry_import"
+                        string="Retry Import"
+                        type="object"
+                        class="btn-warning"
+                        invisible="state not in ('pending_mapping', 'pending_review', 'failed')"
+                        groups="ecommerce_connector_base.group_ecommerce_connector_manager"
+                    />
+                    <button
+                        name="action_create_sale_order"
+                        string="Create Sale Order"
+                        type="object"
+                        class="btn-primary"
+                        invisible="state != 'ready'"
+                        groups="ecommerce_connector_base.group_ecommerce_connector_manager"
+                    />
+                    <button
                         name="action_reset_to_draft"
                         string="Reset to Draft"
                         type="object"
                         class="btn-secondary"
-                        invisible="state not in ('failed', 'pending_review', 'pending_mapping')"
+                        invisible="state not in ('failed', 'pending_review', 'pending_mapping', 'ready')"
                         groups="ecommerce_connector_base.group_ecommerce_connector_manager"
                     />
                     <field
@@ -69,6 +95,13 @@
                 </header>
 
                 <sheet>
+                    <div name="button_box" class="oe_button_box">
+                        <button type="object" name="action_open_sale_order"
+                                class="oe_stat_button" icon="fa-shopping-cart"
+                                invisible="not sale_order_id">
+                            <field name="sale_order_id" widget="statinfo" string="Sale Order"/>
+                        </button>
+                    </div>
                     <group>
                         <group string="External Order">
                             <field name="name"/>
@@ -94,9 +127,21 @@
                     <group>
                         <group string="Commercial Values">
                             <field name="currency_id"/>
+                            <field name="currency_mismatch" invisible="1"/>
+                            <div
+                                class="alert alert-warning"
+                                role="alert"
+                                style="margin: 4px 0 8px 0; padding: 6px 10px;"
+                                colspan="2"
+                                invisible="not currency_mismatch"
+                            >
+                                ⚠ <strong>Currency Mismatch:</strong> Order currency differs from company currency. Verify pricing before importing.
+                            </div>
                             <field name="total_amount"/>
                             <field name="shipping_amount"/>
+                            <field name="shipping_product_id"/>
                             <field name="discount_amount"/>
+                            <field name="discount_strategy"/>
                             <field name="tax_amount"/>
                         </group>
 
@@ -104,12 +149,17 @@
                             <field name="payment_status"/>
                             <field name="fulfillment_status"/>
                             <field name="last_processed_at"/>
+                            <field name="last_external_update_at"/>
+                            <field name="last_external_update_event_id"/>
                             <field name="sale_order_id"/>
                         </group>
                     </group>
 
                     <notebook>
                         <page string="Lines">
+                            <div class="alert alert-info" role="alert" style="margin-bottom: 10px;">
+                                <strong>Tax Note:</strong> The <code>tax_amount</code> shown above is the external platform's reported tax. When the sale order is created, Odoo's own tax engine will recalculate taxes based on configured tax rules. The imported tax amount is for reference and reconciliation only.
+                            </div>
                             <field name="line_ids">
                                 <list editable="bottom">
                                     <field name="external_line_id"/>
@@ -137,6 +187,19 @@
                             <group>
                                 <field name="error_message" nolabel="1" placeholder="Error details will appear here."/>
                                 <field name="warning_message" nolabel="1" placeholder="Warnings will appear here."/>
+                            </group>
+                        </page>
+
+                        <page string="Retry Audit">
+                            <group>
+                                <group>
+                                    <field name="retry_count"/>
+                                    <field name="last_retry_at"/>
+                                    <field name="last_retry_by_id"/>
+                                </group>
+                            </group>
+                            <group string="Error History">
+                                <field name="error_history" nolabel="1"/>
                             </group>
                         </page>
                     </notebook>
@@ -171,6 +234,8 @@
                 <filter name="filter_imported" string="Imported" domain="[('state', '=', 'imported')]"/>
                 <filter name="filter_failed" string="Failed" domain="[('state', '=', 'failed')]"/>
                 <filter name="filter_pending_review" string="Pending Review" domain="[('state', '=', 'pending_review')]"/>
+                <separator/>
+                <filter name="filter_needs_attention" string="Needs Attention" domain="[('state', 'in', ('pending_mapping', 'pending_review', 'failed'))]"/>
 
                 <group expand="0" string="Group By">
                     <filter name="group_by_store" string="Store" context="{'group_by': 'store_id'}"/>
@@ -195,6 +260,62 @@
             </p>
             <p>
                 External orders are staging records created before Odoo sale orders.
+            </p>
+        </field>
+    </record>
+    <record id="action_ecommerce_error_queue" model="ir.actions.act_window">
+        <field name="name">Import Error Queue</field>
+        <field name="res_model">ecommerce.external.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('state', 'in', ('pending_mapping', 'pending_review', 'failed'))]</field>
+        <field name="context">{'search_default_group_by_state': 1}</field>
+        <field name="search_view_id" ref="view_ecommerce_external_order_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No orders need attention right now.
+            </p>
+            <p>
+                Orders that fail validation, mapping, or creation will appear here for manager review and retry.
+            </p>
+        </field>
+    </record>
+
+    <record id="view_ecommerce_external_order_pivot" model="ir.ui.view">
+        <field name="name">ecommerce.external.order.pivot</field>
+        <field name="model">ecommerce.external.order</field>
+        <field name="arch" type="xml">
+            <pivot string="Orders by Store and Status" sample="1">
+                <field name="store_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="total_amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_ecommerce_external_order_graph" model="ir.ui.view">
+        <field name="name">ecommerce.external.order.graph</field>
+        <field name="model">ecommerce.external.order</field>
+        <field name="arch" type="xml">
+            <graph string="Orders by Store and Status" type="bar" sample="1">
+                <field name="store_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="total_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_ecommerce_external_order_report" model="ir.actions.act_window">
+        <field name="name">Orders by Store &amp; Status</field>
+        <field name="res_model">ecommerce.external.order</field>
+        <field name="view_mode">pivot,graph,list,form</field>
+        <field name="search_view_id" ref="view_ecommerce_external_order_search"/>
+        <field name="context">{'search_default_group_by_store': 1, 'search_default_group_by_state': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No external orders yet.
+            </p>
+            <p>
+                Analyze external order volume and value grouped by store and processing status.
             </p>
         </field>
     </record>

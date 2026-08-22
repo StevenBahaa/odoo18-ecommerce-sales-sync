@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-     <record id="view_ecommerce_store_list" model="ir.ui.view">
+    <record id="view_ecommerce_store_list" model="ir.ui.view">
         <field name="name">ecommerce.store.list</field>
         <field name="model">ecommerce.store</field>
         <field name="arch" type="xml">
@@ -8,6 +8,7 @@
                 <field name="name"/>
                 <field name="platform"/>
                 <field name="environment"/>
+                <field name="discount_strategy"/>
                 <field name="store_identifier"/>
                 <field name="company_id" groups="base.group_multi_company"/>
                 <field name="last_webhook_received_at"/>
@@ -134,6 +135,14 @@
                                     <field name="access_token_expires_at"/>
                                     <field name="refresh_token_issued_at"/>
                                     <field name="refresh_token_expires_at"/>
+                                </group>
+                            </group>
+                            <group>
+                                <group string="OAuth Metadata">
+                                    <field name="oauth_scope" readonly="1"/>
+                                    <field name="oauth_token_type" readonly="1"/>
+                                    <field name="last_oauth_authorized_at" readonly="1"/>
+                                    <field name="last_oauth_authorize_event_id" readonly="1"/>
                                 </group>
                             </group>
                         </page>

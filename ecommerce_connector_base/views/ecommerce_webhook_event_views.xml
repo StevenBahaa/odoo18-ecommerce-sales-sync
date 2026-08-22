@@ -22,6 +22,8 @@
                 <field name="related_external_order_id"/>
                 <field name="signature_valid"/>
                 <field name="processing_status"/>
+                <field name="retry_count" optional="hide"/>
+                <field name="last_retry_at" optional="hide"/>
                 <field name="http_status_returned"/>
                 <field name="processed_at"/>
                 <field name="company_id" groups="base.group_multi_company"/>
@@ -36,10 +38,10 @@
             <form string="Webhook Event" create="0" edit="0" delete="0">
                 <header>
                     <button
-                        name="action_mark_received"
-                        string="Mark as Received"
+                        name="action_retry_processing"
+                        string="Retry Processing"
                         type="object"
-                        class="btn-secondary"
+                        class="btn-warning"
                         groups="ecommerce_connector_base.group_ecommerce_connector_manager"
                         invisible="processing_status not in ('failed', 'pending_review')"
                     />
@@ -88,6 +90,19 @@
                         <page string="Error">
                             <field name="error_message" nolabel="1"/>
                         </page>
+
+                        <page string="Retry Audit">
+                            <group>
+                                <group>
+                                    <field name="retry_count"/>
+                                    <field name="last_retry_at"/>
+                                    <field name="last_retry_by_id"/>
+                                </group>
+                            </group>
+                            <group string="Error History">
+                                <field name="error_history" nolabel="1"/>
+                            </group>
+                        </page>
                     </notebook>
                 </sheet>
             </form>
@@ -114,6 +129,10 @@
                 <filter name="filter_failed" string="Failed" domain="[('processing_status', '=', 'failed')]"/>
                 <filter name="filter_invalid_signature" string="Invalid Signature" domain="[('processing_status', '=', 'invalid_signature')]"/>
                 <filter name="filter_rate_limited" string="Rate Limited" domain="[('processing_status', '=', 'rate_limited')]"/>
+                <filter name="filter_duplicate" string="Duplicate" domain="[('processing_status', '=', 'duplicate')]"/>
+
+                <separator/>
+                <filter name="filter_retryable" string="Retryable" domain="[('processing_status', 'in', ('failed', 'pending_review'))]"/>
 
                 <separator/>
 
@@ -142,6 +161,44 @@
             </p>
             <p>
                 Incoming webhook requests will be stored here before any business processing.
+            </p>
+        </field>
+    </record>
+
+    <record id="view_ecommerce_webhook_event_pivot" model="ir.ui.view">
+        <field name="name">ecommerce.webhook.event.pivot</field>
+        <field name="model">ecommerce.webhook.event</field>
+        <field name="arch" type="xml">
+            <pivot string="Webhook Events by Store and Status" sample="1">
+                <field name="store_id" type="row"/>
+                <field name="processing_status" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_ecommerce_webhook_event_graph" model="ir.ui.view">
+        <field name="name">ecommerce.webhook.event.graph</field>
+        <field name="model">ecommerce.webhook.event</field>
+        <field name="arch" type="xml">
+            <graph string="Webhook Events by Store and Status" type="bar" sample="1">
+                <field name="store_id" type="row"/>
+                <field name="processing_status" type="col"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_ecommerce_webhook_event_report" model="ir.actions.act_window">
+        <field name="name">Webhook Health</field>
+        <field name="res_model">ecommerce.webhook.event</field>
+        <field name="view_mode">pivot,graph,list,form</field>
+        <field name="search_view_id" ref="view_ecommerce_webhook_event_search"/>
+        <field name="context">{'search_default_group_by_store': 1, 'search_default_group_by_status': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No webhook events yet.
+            </p>
+            <p>
+                Analyze webhook delivery health grouped by store and processing status.
             </p>
         </field>
     </record>

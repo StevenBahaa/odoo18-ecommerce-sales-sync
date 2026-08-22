@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_ecommerce_sale_order_list" model="ir.ui.view">
+        <field name="name">sale.order.ecommerce.list</field>
+        <field name="model">sale.order</field>
+        <field name="arch" type="xml">
+            <list string="Imported Sale Orders" create="0">
+                <field name="name"/>
+                <field name="ecommerce_store_id"/>
+                <field name="ecommerce_platform"/>
+                <field name="ecommerce_external_reference"/>
+                <field name="partner_id"/>
+                <field name="date_order"/>
+                <field name="amount_total"/>
+                <field name="state"/>
+                <field name="ecommerce_payment_status"/>
+                <field name="ecommerce_fulfillment_status"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ecommerce_sale_order_search" model="ir.ui.view">
+        <field name="name">sale.order.ecommerce.search</field>
+        <field name="model">sale.order</field>
+        <field name="arch" type="xml">
+            <search string="Search Imported Sale Orders">
+                <field name="name"/>
+                <field name="ecommerce_store_id"/>
+                <field name="ecommerce_external_reference"/>
+                <field name="partner_id"/>
+
+                <separator/>
+
+                <filter name="filter_draft" string="Quotation" domain="[('state', '=', 'draft')]"/>
+                <filter name="filter_sent" string="Quotation Sent" domain="[('state', '=', 'sent')]"/>
+                <filter name="filter_sale" string="Sales Order" domain="[('state', '=', 'sale')]"/>
+                <filter name="filter_cancel" string="Cancelled" domain="[('state', '=', 'cancel')]"/>
+
+                <group expand="0" string="Group By">
+                    <filter name="group_by_store" string="Store" context="{'group_by': 'ecommerce_store_id'}"/>
+                    <filter name="group_by_platform" string="Platform" context="{'group_by': 'ecommerce_platform'}"/>
+                    <filter name="group_by_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="group_by_payment_status" string="Payment Status" context="{'group_by': 'ecommerce_payment_status'}"/>
+                    <filter name="group_by_month" string="Order Month" context="{'group_by': 'date_order:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_ecommerce_sale_order_pivot" model="ir.ui.view">
+        <field name="name">sale.order.ecommerce.pivot</field>
+        <field name="model">sale.order</field>
+        <field name="arch" type="xml">
+            <pivot string="Sales by Store" sample="1">
+                <field name="ecommerce_store_id" type="row"/>
+                <field name="date_order" type="col" interval="month"/>
+                <field name="amount_total" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_ecommerce_sale_order_graph" model="ir.ui.view">
+        <field name="name">sale.order.ecommerce.graph</field>
+        <field name="model">sale.order</field>
+        <field name="arch" type="xml">
+            <graph string="Sales by Store" type="bar" sample="1">
+                <field name="ecommerce_store_id" type="row"/>
+                <field name="amount_total" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_ecommerce_sale_order" model="ir.actions.act_window">
+        <field name="name">Imported Sale Orders</field>
+        <field name="res_model">sale.order</field>
+        <field name="view_mode">list,pivot,graph,form</field>
+        <field name="domain">[('ecommerce_store_id', '!=', False)]</field>
+        <field name="search_view_id" ref="view_ecommerce_sale_order_search"/>
+        <field name="context">{'search_default_group_by_store': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No e-commerce sale orders yet.
+            </p>
+            <p>
+                Sale orders created from an external order will appear here, filtered to those linked to an e-commerce store.
+            </p>
+        </field>
+    </record>
+
+</odoo>

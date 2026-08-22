@@ -37,10 +37,10 @@ class EcommerceWebhookController(http.Controller):
 
 
     @http.route(
-        '/ecommerce/webhook/<string:platform>/<string:store_token>', 
-        type='http', 
-        auth='public', 
-        methods=['POST'], 
+        '/ecommerce/webhook/<string:platform>/<string:store_token>',
+        type='http',
+        auth='public',
+        methods=['POST'],
         csrf=False
     )
     def receive_webhook(self, platform, store_token, **kwargs):
@@ -96,7 +96,7 @@ class EcommerceWebhookController(http.Controller):
         self._update_last_webhook_received_at(store)
 
         try:
-            event._apply_uc03_processing_gate()
+            event._apply_uc03_processing_gate(processing_payload=payload_dict)
         except Exception as exc:
             _logger.exception(
                 "Failed to apply UC-03 processing gate for webhook event id %s.",
@@ -284,8 +284,9 @@ class EcommerceWebhookController(http.Controller):
                     indent=2,
                     sort_keys=True,
                 )
+            return decoded_body
 
-        return self._redact_text(decoded_body)
+        return '{"error": "Malformed payload omitted to prevent secret leakage"}'
 
     def _redact_payload(self, value):
         changed = False

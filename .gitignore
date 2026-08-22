@@ -1,4 +1,4 @@
-﻿# Python
+# Python
 __pycache__/
 *.py[cod]
 *.pyo
@@ -27,6 +27,7 @@ addons_path.txt
 # Database dumps
 *.dump
 *.sql
+!scripts/check_uc12_sale_order_duplicates.sql
 *.backup
 *.zip
 
@@ -41,3 +42,10 @@ tmp/
 temp/
 
 PROJECT_PLAN.md
+
+# Local UC planning notes and AI internal logs (never commit)
+/docs/.plans/
+AGENTS.md
+/docs/04_AGENTS.md
+/docs/07_SESSION_LOG.md
+/docs/12_AI_HANDOFF_TEMPLATE.md

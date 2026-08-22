@@ -1,9 +1,10 @@
 import json
 
 
-from odoo import models, fields ,api,_
+from odoo import models, fields, api, _
+from odoo.exceptions import AccessError, UserError
 
-class EcommerceWebhookEvent(models.Model):  
+class EcommerceWebhookEvent(models.Model):
     _name = 'ecommerce.webhook.event'
     _description = 'E-commerce Webhook Event'
     _order = 'create_date desc , id desc'
@@ -29,11 +30,11 @@ class EcommerceWebhookEvent(models.Model):
 
     company_id = fields.Many2one(
         'res.company',
-        string='Company', 
-        required=True, 
+        string='Company',
+        required=True,
         readonly=True,
         index=True,
-        default=lambda self: self.env.company.id, 
+        default=lambda self: self.env.company.id,
     )
 
     platform =fields.Selection(
@@ -49,13 +50,13 @@ class EcommerceWebhookEvent(models.Model):
         readonly=True,
         index=True,
     )
-    
+
     external_event_id = fields.Char(
         string="External Event ID",
         readonly=True,
         index=True,
     )
-    
+
     external_order_id = fields.Char(
         string="External Order ID",
         readonly=True,
@@ -143,6 +144,28 @@ class EcommerceWebhookEvent(models.Model):
         check_company=True,
     )
 
+    retry_count = fields.Integer(
+        string="Retry Count",
+        default=0,
+        readonly=True,
+    )
+
+    last_retry_at = fields.Datetime(
+        string="Last Retry At",
+        readonly=True,
+    )
+
+    last_retry_by_id = fields.Many2one(
+        "res.users",
+        string="Last Retry By",
+        readonly=True,
+    )
+
+    error_history = fields.Text(
+        string="Error History",
+        readonly=True,
+    )
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -156,24 +179,95 @@ class EcommerceWebhookEvent(models.Model):
 
         return records
 
-    def action_mark_received(self):
-        allowed = self.filtered(
-            lambda e: e.processing_status in ("failed", "pending_review")
-        )
-        allowed.sudo().write({
+    def _snapshot_error(self):
+        self.ensure_one()
+        if not self.error_message:
+            return
+
+        timestamp = fields.Datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        requester = self.env.user.name
+        snapshot = f"[{timestamp}] By {requester} (Status: {self.processing_status}):\n{self.error_message}\n"
+
+        existing = self.error_history or ""
+        self.error_history = f"{existing}\n{snapshot}".strip()
+
+    def _ensure_retry_manager(self):
+        if not self.env.user.has_group(
+            "ecommerce_connector_base.group_ecommerce_connector_manager"
+        ):
+            raise AccessError(_("Only an E-commerce Connector Manager can retry webhook processing."))
+
+    def action_retry_processing(self):
+        self.ensure_one()
+        self._ensure_retry_manager()
+        if self.processing_status not in ("failed", "pending_review"):
+            raise UserError(_("Only failed or pending_review events can be retried."))
+
+        self.write({
+            "retry_count": self.retry_count + 1,
+            "last_retry_at": fields.Datetime.now(),
+            "last_retry_by_id": self.env.user.id,
+        })
+
+        self._snapshot_error()
+
+        store = self.store_id.sudo()
+        if not store.integration_user_id:
+            self.write({
+                "processing_status": "pending_review",
+                "error_message": _("Integration user is not configured."),
+                "processed_at": fields.Datetime.now(),
+            })
+            return True
+
+        if self.event_type == 'order.created':
+            # Try to find external order and delegate to it
+            ext_order = self.related_external_order_id
+            if not ext_order:
+                ext_order = self.env['ecommerce.external.order'].search([
+                    ('store_id', '=', self.store_id.id),
+                    ('external_order_id', '=', self.external_order_id)
+                ], limit=1)
+
+            if ext_order:
+                if ext_order.state == "imported":
+                    ext_order.with_context(
+                        retrying_webhook_event_id=self.id,
+                    ).with_user(store.integration_user_id).with_company(
+                        store.company_id
+                    )._sync_related_webhook_events_after_import()
+                    return True
+
+                res = ext_order.with_context(
+                    retrying_webhook_event_id=self.id,
+                ).action_retry_import()
+                # Synchronize status back
+                new_status = 'processed' if ext_order.state == 'imported' else ('failed' if ext_order.state == 'failed' else 'pending_review')
+                self.write({
+                    'processing_status': new_status,
+                    'related_external_order_id': ext_order.id,
+                    'related_partner_id': ext_order.partner_id.id if ext_order.partner_id else False,
+                    'related_sale_order_id': ext_order.sale_order_id.id if ext_order.sale_order_id else False,
+                    'error_message': ext_order.error_message or False,
+                })
+                return res
+
+        # Fallback to normal processing
+        self.write({
             "processing_status": "received",
             "error_message": False,
-            "processed_at": False,
         })
+        self._apply_uc03_processing_gate()
         return True
 
-    def _apply_uc03_processing_gate(self):
+    def _apply_uc03_processing_gate(self, processing_payload=None):
         now = fields.Datetime.now()
 
         for event in self:
-            store = event.store_id
+            store = event.store_id.sudo()
+            integration_user = store.integration_user_id
 
-            if not store.integration_user_id:
+            if not integration_user:
                 event.sudo().write({
                     "processing_status": "pending_review",
                     "error_message": _(
@@ -185,9 +279,9 @@ class EcommerceWebhookEvent(models.Model):
                 continue
 
             try:
-                event.with_user(store.integration_user_id).with_company(
+                event.with_user(integration_user).with_company(
                     store.company_id
-                )._process_business_event()
+                )._process_business_event(processing_payload=processing_payload)
             except Exception as exc:
                 event.sudo().write({
                     "processing_status": "failed",
@@ -195,7 +289,7 @@ class EcommerceWebhookEvent(models.Model):
                     "processed_at": fields.Datetime.now(),
                 })
 
-    def _process_business_event(self):
+    def _process_business_event(self, processing_payload=None):
         self.write({
             "processing_status": "processed",
             "error_message": False,

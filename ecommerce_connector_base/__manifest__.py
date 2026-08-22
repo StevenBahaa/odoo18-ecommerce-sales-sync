@@ -1,6 +1,6 @@
 {
     "name": "E-commerce Connector Base",
-    "version": "18.0.1.0.0",
+    "version": "18.0.2.0.0",
     "category": "Sales",
     "summary": "Base models and tools for e-commerce sales synchronization",
     "Author": "Steven Bahaa",
@@ -21,6 +21,7 @@
         "views/ecommerce_external_order_line_views.xml",
         "views/ecommerce_customer_mapping_views.xml",
         "views/ecommerce_product_mapping_views.xml",
+        "views/sale_order_views.xml",
         "views/ecommerce_menu.xml",
     ],
     "installable": True,
