@@ -863,6 +863,13 @@ class TestUC17SallaAPIEnrichment(TransactionCase):
 
     def test_34_currency_mismatch_fails_enrichment(self):
         """34. Currency mismatch fails enrichment and preserves staged values."""
+        # Pin the staged order to SAR so the "USD" API response always mismatches,
+        # regardless of what the CI runner's company currency is.
+        sar = self.env["res.currency"].search([("name", "=", "SAR"), ("active", "=", True)], limit=1)
+        if not sar:
+            sar = self.env["res.currency"].create({"name": "SAR", "symbol": "SAR", "active": True})
+        self.external_order.currency_id = sar
+
         bad_data = dict(self.valid_order_details["data"])
         bad_data["currency"] = "USD"
         with patch.object(EcommerceSallaClient, "_fetch_order_details", return_value=bad_data):
