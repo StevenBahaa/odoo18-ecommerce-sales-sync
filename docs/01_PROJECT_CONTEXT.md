@@ -25,12 +25,11 @@ It is a portfolio MVP, not a certified production marketplace connector.
 
 ## Current status
 
-Snapshot: **2026-07-19**, based on the current <code>develop</code> branch, source, tests, and Git history.
+Snapshot: **2026-08-22**, based on the current <code>develop</code> branch, source, tests, and Git history.
 
-- UC-00 through UC-13 are implemented; UC-13 (Error Queue and Manual Retry) is merged into <code>develop</code>.
-- UC-14, external order status updates and event ordering, is next.
-- Live Salla API calls, OAuth authorization processing, token refresh, stock readiness, reporting, demo bootstrap data, and release work remain deferred.
-- <code>README.md</code> and <code>docs/TEST_CASES.md</code> still describe an earlier milestone. Treat current code and [05_CURRENT_STATUS.md](05_CURRENT_STATUS.md) as the more accurate implementation snapshot until those files are refreshed.
+- UC-00 through UC-20 (including UC-22 and UC-23) are implemented and merged into <code>develop</code>.
+- UC-21 (Documentation, Release Polish, and CI) is in progress.
+- Live Salla production readiness and deployment topology need investigation.
 
 ## High-level architecture
 
@@ -73,20 +72,22 @@ ecommerce_connector_base/
   views/              Odoo XML views, actions, menus
   tests/              Odoo TransactionCase tests
 ecommerce_salla_connector/
-  models/             Salla mapper, webhook handler, future API boundary
-  wizard/             Mock webhook lab
+  controllers/        OAuth and webhook controller extensions
+  models/             Salla mapper, webhook handler, Merchant API client
+  wizards/            Mock webhook lab
   security/           Salla wizard access
   views/              Salla store and mock-lab XML views
-  data/               Sample webhook payload JSON
+  sample_payloads/    Sample webhook payload JSON
+  data/               Demo data
   tests/              Salla integration tests
 scripts/
   check_uc12_sale_order_duplicates.sql
 docs/
-  TEST_CASES.md       Existing, currently partial test-case document
+  TEST_CASES.md       Manual test-case document
+  RELEASE_CHECKLIST.md Release verification procedures
   .plans/             Local UC plans; intentionally gitignored
 PROJECT_PLAN.md       Local detailed UC roadmap; intentionally gitignored
 README.md              Project overview and local-development notes
-AGENTS.md              Repository-level Git safety instruction
 ~~~
 
 ## External services and APIs
@@ -94,12 +95,10 @@ AGENTS.md              Repository-level Git safety instruction
 | Service/interface | Current use | Status |
 | --- | --- | --- |
 | Salla webhooks | Order-created ingestion and Salla-shaped mock payloads | Implemented |
-| Salla API | Abstract client boundary only | Deferred to UC-17 |
-| Salla OAuth authorization | Store fields and mock payload exist | Processing deferred to UC-15 |
+| Salla API | GET-only Merchant API client, manual enrichment (UC-17) | Implemented |
+| Salla OAuth authorization | Authorization token ingest (UC-15) and refresh locking (UC-16) | Implemented |
 | Odoo/PostgreSQL | Persistent application and database layer | Required |
 | GitHub | Remote source control | Used by the project workflow |
-
-No real outbound Salla API request is implemented in the repository today.
 
 ## Database and key records
 
@@ -142,16 +141,13 @@ Run from repository root, adapting the Odoo checkout, config, database, and addo
 
 ~~~powershell
 # Update both addons in a local development database.
-python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d ecommerce_sales_sync_dev -u ecommerce_connector_base,ecommerce_salla_connector --stop-after-init
-
-# Run the implemented UC-12 and UC-13 targeted tests.
-python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d ecommerce_sales_sync_dev -u ecommerce_connector_base,ecommerce_salla_connector --test-enable --test-tags /ecommerce_connector_base:TestUC12SaleOrderIdempotency,/ecommerce_salla_connector:TestUC12WebhookIdempotency,/ecommerce_connector_base:TestUC13ManualRetry,/ecommerce_salla_connector:TestUC13WebhookRetry --stop-after-init --no-http --log-level=error
+python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d salla_test -u ecommerce_connector_base,ecommerce_salla_connector --stop-after-init
 
 # Inspect duplicates before installing the UC-12 uniqueness constraint on an older database.
 psql -d <database_name> -f scripts/check_uc12_sale_order_duplicates.sql
 ~~~
 
-The exact dependency-installation command and database bootstrap procedure are not versioned here and **need further investigation**.
+For the complete multi-module regression test command, see [docs/RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md).
 
 ## Common workflows
 

@@ -1,0 +1,47 @@
+name: static-checks
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Bytecode compile both addons
+        run: python -m compileall ecommerce_connector_base ecommerce_salla_connector
+      - name: XML well-formedness
+        run: |
+          python - <<'PY'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          bad = []
+          for p in sorted(pathlib.Path(".").rglob("*.xml")):
+              if ".git" in p.parts:
+                  continue
+              try:
+                  ET.parse(p)
+              except Exception as exc:
+                  bad.append(f"{p}: {exc}")
+          if bad:
+              raise SystemExit("; ".join(bad))
+          print("XML OK")
+          PY
+      - name: Sample payload JSON validity
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          payloads = pathlib.Path("ecommerce_salla_connector/sample_payloads")
+          for p in sorted(payloads.glob("*.json")):
+              json.loads(p.read_text(encoding="utf-8"))
+          print("JSON OK")
+          PY
+      - name: Whitespace gate
+        run: git diff --check "$(git merge-base origin/main HEAD)" HEAD

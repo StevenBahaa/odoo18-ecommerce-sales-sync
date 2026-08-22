@@ -195,14 +195,15 @@ flowchart TD
 
 The Salla API client is strictly GET-only and manual. It enforces integration-manager authorization, access-token preflight with single-use refresh token locking, safe error mapping (masking credentials), rate-limit cooldown persistence, and atomic row-locked stale-response protection without modifying linked sale orders or raw webhook payloads.
 
-## Deferred architecture
+## Formerly deferred, now implemented
 
-| Area | Evidence | Status |
-| --- | --- | --- |
-| OAuth authorization | Store token fields and authorize sample payload | UC-15 |
-| Token refresh | Store lock/timestamp fields | UC-16 |
-| Live Salla API client | Merchant API GET client & order enrichment | UC-17 |
-| Stock readiness | Store policy field | UC-18 |
-| Reporting | Model foundations only | UC-19 |
+OAuth authorization (UC-15), token refresh safety (UC-16), GET-only Salla API client and
+enrichment (UC-17), stock readiness gating (UC-18), reporting views (UC-19), and demo
+bootstrap data (UC-20).
 
-Production topology, queues/workers, observability, backups, and reverse-proxy architecture **need further investigation**.
+## Still deferred
+
+| Area | Status |
+| --- | --- |
+| Order cancellation (`order.cancelled`) | Not routed by the dispatcher; needs its own UC before any sample payload or logic. |
+| Production topology | TLS/reverse proxy, workers/queues, observability, backups **need further investigation**. |

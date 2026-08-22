@@ -61,6 +61,53 @@ Verify that the winning sale order is re-found, linked, and returned without a u
 Use the same external reference for two different stores.
 Verify that each store can have one sale order and that the stores do not conflict with each other.
 
+## UC-13 — Error Queue & Manual Retry
+
+### TC-UC13-1 — Error Queue Visibility
+Create external orders in `pending_mapping`, `pending_review`, and `failed` states for a store.
+Verify the Import Error Queue lists all three and excludes imported/duplicate orders.
+
+### TC-UC13-2 — Retry Requires Connector Manager
+Call retry as Connector User. Verify `AccessError`; UI button hidden AND Python guard enforced.
+
+### TC-UC13-3 — Retry Blocked Without Integration User
+Remove `integration_user_id` from the store; retry as manager. Verify explicit configuration
+error and NO partner/product/sale-order writes occur under broad privileges.
+
+### TC-UC13-4 — Successful Retry Uses Idempotent Import
+Fix the mapping, retry. Verify state reaches `imported`, exactly one sale order exists, and a
+redelivery afterwards links to the same sale order.
+
+### TC-UC13-5 — Retry Preserves Audit History
+Before retry, snapshot error/warning/state. After a failed retry attempt verify retry count
+incremented, user/time recorded, and prior error text preserved in history fields.
+
+## UC-14 — External Order Status Updates
+
+### TC-UC14-1 — Newer Update Applied
+Send `order.updated` newer than the watermark. Verify accepted fields written and both
+watermark fields advanced.
+
+### TC-UC14-2 — Older Update Parked
+Send update older than watermark. Verify event `pending_review`, staged order unchanged.
+
+### TC-UC14-3 — Exact Duplicate Update
+Same timestamp + same event ID as last applied. Verify event `duplicate`, nothing mutated.
+
+### TC-UC14-4 — Ambiguous Same-Time Update
+Same timestamp, different event ID. Verify `pending_review` with ambiguity message.
+
+### TC-UC14-5 — Omitted Fields Never Cleared
+Update payload containing only `status`. Verify customer/amounts/payment fields untouched.
+
+### TC-UC14-6 — Currency Mismatch Parks Atomically
+Monetary update whose currency differs from the staged order currency. Verify entire event
+parked with no field written, including no partial amount write.
+
+### TC-UC14-7 — Safe Sale-Order Mirroring
+On an imported order, send payment/shipping status update. Verify linked sale order's
+connector informational fields updated; state/totals/lines never modified.
+
 ## UC-15 — Secure OAuth Authorization Handling
 
 ### TC-UC15-1 — Successful Authorization Ingest

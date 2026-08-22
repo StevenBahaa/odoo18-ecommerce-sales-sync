@@ -21,12 +21,11 @@ This combines the local UC plan with code currently present on <code>develop</co
 | UC-22 | Salla live payload compatibility and status normalization: strict shared status normalizer, Salla datetime object parsing with timezone conversion to UTC, customer identity/mobile normalization, nested product/variant ID and line amount mapping, orders.read_write OAuth scope preflight. |
 | UC-23 | Webhook retry status synchronization: direct external-order retry and webhook retry now converge the related `order.created` event to `processed` after a successful import. |
 | UC-20 | Demo data, sample payloads, and scripts: payment_method/shipping_status mapper fallback for real payload field names; sanitized real-shape OAuth authorize sample plus new app.installed sample; two previously-orphaned payloads wired into the Mock Payload Lab; idempotent demo bootstrap (demo store, products, five webhook events, three external-order states) registered as Odoo demo data. |
+| UC-21 | Documentation, release polish, and CI: full README rewrite, manual test cases for UC-13/14, architecture/context refresh, docs/13_SCREENSHOT_GUIDE.md, docs/RELEASE_CHECKLIST.md, manifest version bump to 18.0.2.0.0, GitHub Actions static-checks and odoo-tests workflows. |
 
 ## Next
 
-### UC-21 — Documentation and Release Polish
-
-README/TEST_CASES alignment through the current UC, CI wiring, and release packaging checks.
+None scheduled. Portfolio MVP scope is complete through UC-23.
 
 ## Future
 

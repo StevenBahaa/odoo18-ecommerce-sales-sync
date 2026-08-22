@@ -29,7 +29,7 @@ Exact versions, dependency installation, PostgreSQL credentials, and database-cr
 3. Update the two modules:
 
 ~~~powershell
-python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d ecommerce_sales_sync_dev -u ecommerce_connector_base,ecommerce_salla_connector --stop-after-init
+python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d salla_test -u ecommerce_connector_base,ecommerce_salla_connector --stop-after-init
 ~~~
 
 4. Start Odoo normally using your local configuration.
@@ -66,14 +66,14 @@ Start from the persisted records, not from a guessed code path:
 Run focused Odoo tests after upgrading affected modules:
 
 ~~~powershell
-python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d ecommerce_sales_sync_dev -u ecommerce_connector_base,ecommerce_salla_connector --test-enable --test-tags /ecommerce_connector_base:TestUC12SaleOrderIdempotency,/ecommerce_salla_connector:TestUC12WebhookIdempotency,/ecommerce_connector_base:TestUC13ManualRetry,/ecommerce_salla_connector:TestUC13WebhookRetry --stop-after-init --no-http --log-level=error
+python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d salla_test -u ecommerce_connector_base,ecommerce_salla_connector --test-enable --test-tags /ecommerce_connector_base:TestUC12SaleOrderIdempotency,/ecommerce_salla_connector:TestUC12WebhookIdempotency,/ecommerce_connector_base:TestUC13ManualRetry,/ecommerce_salla_connector:TestUC13WebhookRetry --stop-after-init --no-http --log-level=error
 ~~~
 
 Use a throwaway/development database when running module upgrades. There is no project-managed test database bootstrap, CI pipeline, lint command, or coverage gate.
 
 ## How to contribute
 
-1. Read [04_AGENTS.md](04_AGENTS.md), [02_ARCHITECTURE.md](02_ARCHITECTURE.md), and the relevant model/test files.
+1. Read [02_ARCHITECTURE.md](02_ARCHITECTURE.md), [03_CODING_STANDARDS.md](03_CODING_STANDARDS.md), and the relevant model/test files.
 2. Create a feature branch named for the UC.
 3. Create the ignored local UC plan under <code>docs/.plans/</code>.
 4. Implement the smallest safe vertical change with tests.
