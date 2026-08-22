@@ -81,7 +81,7 @@ TypeScript and React are not used. Do not add a Node/React stack for an Odoo vie
 - Put Salla behavior in the Salla addon tests.
 - Upgrade affected modules and run targeted tests with <code>--test-enable</code> and <code>--test-tags</code>.
 
-No repository-configured formatter, linter, coverage gate, pytest setup, or CI workflow exists. Do not claim lint/CI passed unless a concrete command was available and run.
+Two GitHub Actions workflows run on every push/PR to `develop` and `main`: `static-checks` (bytecode compile, XML/JSON parse, whitespace gate) and `odoo-tests` (full regression suite against Odoo 18 core). No repository-configured formatter, coverage gate, or pytest setup exists. Do not claim lint/CI passed unless the workflow run succeeded.
 
 ## Performance
 

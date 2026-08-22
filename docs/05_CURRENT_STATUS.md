@@ -1,7 +1,7 @@
 # Current Status
 
-Snapshot date: **2026-08-22**
-Evidence: current <code>develop</code> branch, implementation, targeted tests, Git history, and local <code>PROJECT_PLAN.md</code>.
+Snapshot date: **2026-08-23**
+Evidence: current <code>develop</code> branch, implementation, targeted tests, Git history, and GitHub Actions CI.
 
 ## Completed features
 
@@ -46,7 +46,7 @@ No UC implementation is currently in progress.
 
 ## Known bugs
 
-No confirmed connector defects remain. The full regression suite (13 test classes) passes with 0 failures, 0 errors.
+No confirmed connector defects remain. The full regression suite (13 test classes) passes with 0 failures, 0 errors, both locally and on GitHub Actions CI (`static-checks` and `odoo-tests` workflows passing on `develop` and `main`).
 
 Real Salla payload compatibility, especially product identifier shapes beyond the bundled samples, **needs further investigation** against live documentation/payload captures before production use.
 
@@ -55,13 +55,13 @@ Real Salla payload compatibility, especially product identifier shapes beyond th
 | Item | Status |
 | --- | --- |
 | Current active development line | <code>develop</code> (UC-00 through UC-23 complete). |
-| Latest recorded main-branch milestone | <code>v0.2.0-product-mapping</code>. |
-| Next milestone | <code>v1.0.0-portfolio-mvp</code> (Release candidate ready). |
+| Latest recorded main-branch milestone | <code>v1.0.0-portfolio-mvp</code> (tagged and pushed to remote). |
+| Next milestone | None scheduled. Portfolio MVP scope is complete. |
 
 ## Prioritized next work
 
-1. Release verification and tagging per [docs/RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md).
-2. Deployment runbook investigation (TLS, reverse proxy, workers, backups, monitoring).
+1. Deployment runbook investigation (TLS, reverse proxy, workers, backups, monitoring).
+2. Controller signature/rate-limit/redaction edge-case test coverage expansion.
 
 ## Current blockers
 

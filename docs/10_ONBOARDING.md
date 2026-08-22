@@ -69,7 +69,7 @@ Run focused Odoo tests after upgrading affected modules:
 python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d salla_test -u ecommerce_connector_base,ecommerce_salla_connector --test-enable --test-tags /ecommerce_connector_base:TestUC12SaleOrderIdempotency,/ecommerce_salla_connector:TestUC12WebhookIdempotency,/ecommerce_connector_base:TestUC13ManualRetry,/ecommerce_salla_connector:TestUC13WebhookRetry --stop-after-init --no-http --log-level=error
 ~~~
 
-Use a throwaway/development database when running module upgrades. There is no project-managed test database bootstrap, CI pipeline, lint command, or coverage gate.
+Use a throwaway/development database when running module upgrades. GitHub Actions workflows (`static-checks` and `odoo-tests`) run automatically on push/PR to `develop` and `main`.
 
 ## How to contribute
 
