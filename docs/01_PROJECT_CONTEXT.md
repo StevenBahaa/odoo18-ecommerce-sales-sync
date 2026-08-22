@@ -25,10 +25,10 @@ It is a portfolio MVP, not a certified production marketplace connector.
 
 ## Current status
 
-Snapshot: **2026-08-22**, based on the current <code>develop</code> branch, source, tests, and Git history.
+Snapshot: **2026-08-23**, based on the current <code>develop</code> and <code>main</code> branches, source, tests, and Git history.
 
-- UC-00 through UC-20 (including UC-22 and UC-23) are implemented and merged into <code>develop</code>.
-- UC-21 (Documentation, Release Polish, and CI) is in progress.
+- UC-00 through UC-23 (including UC-21) are implemented and merged into `develop` and `main`.
+- GitHub Actions CI (`static-checks` and `odoo-tests` workflows) is active and passing.
 - Live Salla production readiness and deployment topology need investigation.
 
 ## High-level architecture
@@ -59,7 +59,7 @@ This is an Odoo addon, not a separate web application. Odoo's Python ORM, Postgr
 | Configuration | XML data files and an Odoo configuration file outside the repository |
 | Version control | Git and GitHub |
 
-There is no <code>package.json</code>, TypeScript, React application, Docker setup, CI workflow, dependency lockfile, or repository-managed deployment configuration.
+There is no `package.json`, TypeScript, React application, Docker setup, dependency lockfile, or repository-managed deployment configuration. Two GitHub Actions workflows (`static-checks` and `odoo-tests`) provide CI on `develop` and `main`.
 
 ## Repository structure
 

@@ -35,7 +35,6 @@ None scheduled. Portfolio MVP scope is complete through UC-23.
 
 ## Nice-to-have
 
-- CI that installs modules and runs targeted tests.
 - Controller signature/rate-limit/redaction and matching edge-case tests.
 - Documented local database bootstrap and demo walkthrough.
 - README and TEST_CASES refresh through the current UC.
