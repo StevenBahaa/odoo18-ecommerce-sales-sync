@@ -196,6 +196,23 @@ class EcommerceStore(models.Model):
         required=True,
         tracking=True,
     )
+    cancellation_policy = fields.Selection(
+        selection=[
+            ("stage_only", "Stage Record Only"),
+            ("cancel_linked_sale_order", "Cancel Linked Draft Sale Order"),
+        ],
+        default="stage_only",
+        required=True,
+        tracking=True,
+        help=(
+            "Applied when an order.cancelled webhook arrives for an already "
+            "imported order. 'Stage Record Only' cancels the staged external order "
+            "and never touches the Odoo sale order. 'Cancel Linked Draft Sale Order' "
+            "also cancels the linked quotation while it is still in draft or sent "
+            "state; if the sale order cannot be cancelled, the whole event is parked "
+            "for review and nothing is changed."
+        ),
+    )
 
     integration_user_id = fields.Many2one(
         "res.users",

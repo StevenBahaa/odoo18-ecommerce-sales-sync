@@ -44,7 +44,7 @@
 | invalid_signature | Non-mock webhook failed signature verification. |
 | rate_limited | Webhook exceeded configured per-store limit. |
 | ignored | Event is known but deliberately not processed. |
-| cancelled | External-order cancellation state; lifecycle implementation is deferred. |
+| cancelled | External-order terminal state set by an order.cancelled webhook (watermark-ordered) or by a manager's manual Mark Cancelled action. |
 
 ## Security and identity terminology
 
