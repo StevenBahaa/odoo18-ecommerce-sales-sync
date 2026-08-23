@@ -45,16 +45,21 @@ class TestUC24OrderCancellation(TransactionCase):
             "name": "Test Customer UC24",
         })
 
-        cls.staged_order = cls.env["ecommerce.external.order"].create({
-            "store_id": cls.store.id,
-            "company_id": cls.company.id,
+    def setUp(self):
+        super().setUp()
+        self.store.with_user(self.integration_user).write({
+            "cancellation_policy": "stage_only",
+        })
+        self.staged_order = self.env["ecommerce.external.order"].create({
+            "store_id": self.store.id,
+            "company_id": self.company.id,
             "external_order_id": "uc24_ord_1",
-            "currency_id": cls.company.currency_id.id,
+            "currency_id": self.company.currency_id.id,
             "payment_status": "pending",
             "fulfillment_status": "unfulfilled",
             "external_status": "created",
             "total_amount": 100.0,
-            "partner_id": cls.partner.id,
+            "partner_id": self.partner.id,
             "raw_payload": '{"original": "payload"}',
             "state": "captured",
         })

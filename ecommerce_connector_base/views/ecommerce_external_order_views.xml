@@ -99,7 +99,7 @@
                     <field
                         name="state"
                         widget="statusbar"
-                        statusbar_visible="draft,captured,pending_mapping,ready,imported"
+                        statusbar_visible="draft,captured,pending_mapping,ready,imported,cancelled"
                     />
                 </header>
 

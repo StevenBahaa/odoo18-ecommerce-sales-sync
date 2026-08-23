@@ -354,15 +354,89 @@ class EcommerceWebhookEvent(models.Model):
         store = self.store_id.sudo()
         cancellation_policy = store.cancellation_policy or "stage_only"
 
-        # Fail-fast lifecycle row lock (ADR-008/ADR-010). Acquired in its own savepoint:
-        # if the NOWAIT lock cannot be taken the savepoint rolls back, nothing has been
-        # mutated, and we park the event.
+        # Fail-fast lifecycle row lock (ADR-008/ADR-010). Acquired in a unified savepoint:
+        # if the NOWAIT lock cannot be taken or lock contention occurs, the savepoint rolls
+        # back atomically, nothing is mutated, and the event is parked for review.
         try:
             with self.env.cr.savepoint():
                 self.env.cr.execute(
                     "SELECT id FROM ecommerce_external_order WHERE id = %s FOR UPDATE NOWAIT",
                     (existing_order.id,)
                 )
+                existing_order.invalidate_recordset(
+                    ["last_external_update_at", "last_external_update_event_id"]
+                )
+
+                incoming_time = fields.Datetime.from_string(external_event_time_str)
+                watermark_time = existing_order.last_external_update_at
+
+                if watermark_time:
+                    if incoming_time < watermark_time:
+                        self.write({
+                            "processing_status": "pending_review",
+                            "error_message": _("Cancellation is older than the last applied update."),
+                            "processed_at": fields.Datetime.now(),
+                        })
+                        return
+                    if incoming_time == watermark_time:
+                        if (
+                            parsed["event_id"]
+                            and existing_order.last_external_update_event_id == parsed["event_id"]
+                        ):
+                            self.write({
+                                "processing_status": "duplicate",
+                                "error_message": _("Exact duplicate of the last applied cancellation/update."),
+                                "processed_at": fields.Datetime.now(),
+                            })
+                            return
+                        self.write({
+                            "processing_status": "pending_review",
+                            "error_message": _("Ambiguous cancellation: same timestamp but different/missing event ID."),
+                            "processed_at": fields.Datetime.now(),
+                        })
+                        return
+
+                # Policy pre-check happens BEFORE any mutation so that a rejected
+                # sale-order cancellation leaves the staging record untouched (D4).
+                sale_order = existing_order.sale_order_id
+                if sale_order and cancellation_policy == "cancel_linked_sale_order":
+                    if sale_order.state not in ("draft", "sent"):
+                        self.write({
+                            "processing_status": "pending_review",
+                            "error_message": _(
+                                "Linked sale order %s is in state '%s' and cannot be auto-cancelled."
+                            ) % (sale_order.name, sale_order.state),
+                            "processed_at": fields.Datetime.now(),
+                        })
+                        return
+                    try:
+                        with self.env.cr.savepoint():
+                            sale_order.action_cancel()
+                    except Exception as e:
+                        self.write({
+                            "processing_status": "pending_review",
+                            "error_message": _(
+                                "Could not cancel linked sale order %s: %s"
+                            ) % (sale_order.name, str(e)[:300]),
+                            "processed_at": fields.Datetime.now(),
+                        })
+                        return
+
+                existing_order.write({
+                    "state": "cancelled",
+                    "external_status": parsed["external_status"],
+                    "last_external_update_at": external_event_time_str,
+                    "last_external_update_event_id": parsed["event_id"],
+                    "last_processed_at": fields.Datetime.now(),
+                    "error_message": False,
+                    "warning_message": False,
+                })
+
+                self.write({
+                    "processing_status": "processed",
+                    "error_message": False,
+                    "processed_at": fields.Datetime.now(),
+                })
         except LockNotAvailable:
             self.write({
                 "processing_status": "pending_review",
@@ -373,82 +447,6 @@ class EcommerceWebhookEvent(models.Model):
                 "processed_at": fields.Datetime.now(),
             })
             return
-
-        with self.env.cr.savepoint():
-            existing_order.invalidate_recordset(
-                ["last_external_update_at", "last_external_update_event_id"]
-            )
-
-            incoming_time = fields.Datetime.from_string(external_event_time_str)
-            watermark_time = existing_order.last_external_update_at
-
-            if watermark_time:
-                if incoming_time < watermark_time:
-                    self.write({
-                        "processing_status": "pending_review",
-                        "error_message": _("Cancellation is older than the last applied update."),
-                        "processed_at": fields.Datetime.now(),
-                    })
-                    return
-                if incoming_time == watermark_time:
-                    if (
-                        parsed["event_id"]
-                        and existing_order.last_external_update_event_id == parsed["event_id"]
-                    ):
-                        self.write({
-                            "processing_status": "duplicate",
-                            "error_message": _("Exact duplicate of the last applied cancellation/update."),
-                            "processed_at": fields.Datetime.now(),
-                        })
-                        return
-                    self.write({
-                        "processing_status": "pending_review",
-                        "error_message": _("Ambiguous cancellation: same timestamp but different/missing event ID."),
-                        "processed_at": fields.Datetime.now(),
-                    })
-                    return
-
-            # Policy pre-check happens BEFORE any mutation so that a rejected
-            # sale-order cancellation leaves the staging record untouched (D4).
-            sale_order = existing_order.sale_order_id
-            if sale_order and cancellation_policy == "cancel_linked_sale_order":
-                if sale_order.state not in ("draft", "sent"):
-                    self.write({
-                        "processing_status": "pending_review",
-                        "error_message": _(
-                            "Linked sale order %s is in state '%s' and cannot be auto-cancelled."
-                        ) % (sale_order.name, sale_order.state),
-                        "processed_at": fields.Datetime.now(),
-                    })
-                    return
-                try:
-                    with self.env.cr.savepoint():
-                        sale_order.action_cancel()
-                except Exception as e:
-                    self.write({
-                        "processing_status": "pending_review",
-                        "error_message": _(
-                            "Could not cancel linked sale order %s: %s"
-                        ) % (sale_order.name, str(e)[:300]),
-                        "processed_at": fields.Datetime.now(),
-                    })
-                    return
-
-            existing_order.write({
-                "state": "cancelled",
-                "external_status": parsed["external_status"],
-                "last_external_update_at": external_event_time_str,
-                "last_external_update_event_id": parsed["event_id"],
-                "last_processed_at": fields.Datetime.now(),
-                "error_message": False,
-                "warning_message": False,
-            })
-
-            self.write({
-                "processing_status": "processed",
-                "error_message": False,
-                "processed_at": fields.Datetime.now(),
-            })
 
     def _load_json_payload(self):
         try:
