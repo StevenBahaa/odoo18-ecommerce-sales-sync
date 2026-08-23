@@ -598,6 +598,28 @@ class EcommerceExternalOrder(models.Model):
         ):
             raise AccessError(_("Only an E-commerce Connector Manager can retry imports."))
 
+    def _ensure_cancellation_manager(self):
+        if not self.env.user.has_group(
+            "ecommerce_connector_base.group_ecommerce_connector_manager"
+        ):
+            raise AccessError(_("Only an E-commerce Connector Manager can cancel external orders."))
+
+    def action_cancel_external_order(self):
+        self.ensure_one()
+        self._ensure_cancellation_manager()
+        if self.state in ("imported", "duplicate", "cancelled"):
+            raise UserError(
+                _("Imported, duplicate, or already cancelled orders cannot be manually cancelled here.")
+            )
+        self._snapshot_error()
+        self.write({
+            "state": "cancelled",
+            "error_message": False,
+            "warning_message": False,
+            "last_processed_at": fields.Datetime.now(),
+        })
+        return True
+
     def action_retry_import(self):
         self.ensure_one()
         self._ensure_retry_manager()

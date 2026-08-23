@@ -100,10 +100,10 @@ stateDiagram-v2
     failed --> ready: retry succeeds
     pending_mapping --> failed: retry exception
     pending_review --> failed: retry exception
-    captured --> cancelled: future lifecycle handling
+    captured --> cancelled: order.cancelled event or manager action
 ~~~
 
-The current selection also contains <code>draft</code>, <code>duplicate</code>, and <code>cancelled</code>. Not all transitions are implemented; cancellation behavior is deferred to future work.
+The selection also contains <code>draft</code>, <code>duplicate</code>, and <code>cancelled</code>. The transition to <code>cancelled</code> is fully implemented in UC-24 for watermark-ordered <code>order.cancelled</code> webhooks and manual manager cancellation; subsequent updates adhering to watermark rules do not resurrect a cancelled order.
 
 ## Data model and constraints
 
@@ -198,12 +198,12 @@ The Salla API client is strictly GET-only and manual. It enforces integration-ma
 ## Formerly deferred, now implemented
 
 OAuth authorization (UC-15), token refresh safety (UC-16), GET-only Salla API client and
-enrichment (UC-17), stock readiness gating (UC-18), reporting views (UC-19), and demo
-bootstrap data (UC-20).
+enrichment (UC-17), stock readiness gating (UC-18), reporting views (UC-19), demo
+bootstrap data (UC-20), and order cancellation handling (UC-24).
 
 ## Still deferred
 
 | Area | Status |
 | --- | --- |
-| Order cancellation (`order.cancelled`) | Not routed by the dispatcher; needs its own UC before any sample payload or logic. |
+| Outbound stock synchronization | Out of MVP; stock readiness gating implemented in UC-18. |
 | Production topology | TLS/reverse proxy, workers/queues, observability, backups **need further investigation**. |

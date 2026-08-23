@@ -123,7 +123,11 @@ class TestSallaLivePayloadCompatibility(TransactionCase):
             ],
         })
 
-        cls.store = cls.env["ecommerce.store"].create({
+        existing_store = cls.env["ecommerce.store"].search([
+            ("store_identifier", "=", "999000111"),
+            ("company_id", "=", cls.company.id),
+        ], limit=1)
+        store_vals = {
             "name": "Salla Sanitized Store",
             "platform": "salla",
             "environment": "production",
@@ -139,7 +143,12 @@ class TestSallaLivePayloadCompatibility(TransactionCase):
             "stock_sync_policy": "none",
             "access_token_expires_at": fields.Datetime.now() + timedelta(days=10),
             "refresh_token_expires_at": fields.Datetime.now() + relativedelta(months=1),
-        })
+        }
+        if existing_store:
+            cls.store = existing_store
+            cls.store.write(store_vals)
+        else:
+            cls.store = cls.env["ecommerce.store"].create(store_vals)
         cls.mapper = cls.env["ecommerce.salla.mapper"]
 
     # =========================================================================

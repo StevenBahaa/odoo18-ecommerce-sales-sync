@@ -1,0 +1,46 @@
+{
+  "event": "order.cancelled",
+  "merchant": {
+    "id": "mock-merchant-001",
+    "name": "Mock Salla Store"
+  },
+  "id": "mock-event-order-cancelled-001",
+  "created_at": "2026-06-11T09:20:00Z",
+  "data": {
+    "id": "SALLA-ORDER-1001",
+    "order_id": "SALLA-ORDER-1001",
+    "reference_id": "REF-1001",
+    "status": "canceled",
+    "canceled_at": {
+      "date": "2026-06-11 12:15:00.000000",
+      "timezone": "Asia/Riyadh"
+    },
+    "reason": "Customer requested cancellation",
+    "customer": {
+      "id": "CUST-001",
+      "full_name": "Mock Customer One",
+      "email": "customer.one@example.com",
+      "mobile": "+966500000001",
+      "mobile_code": "+966"
+    },
+    "currency": "SAR",
+    "amounts": {
+      "total": {
+        "amount": 250.0,
+        "currency": "SAR"
+      },
+      "shipping_cost": {
+        "amount": 20.0,
+        "currency": "SAR"
+      },
+      "discounts": {
+        "amount": 0.0,
+        "currency": "SAR"
+      },
+      "tax": {
+        "amount": 12.5,
+        "currency": "SAR"
+      }
+    }
+  }
+}

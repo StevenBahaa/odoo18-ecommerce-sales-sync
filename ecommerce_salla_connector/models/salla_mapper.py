@@ -659,6 +659,57 @@ class EcommerceSallaMapper(models.AbstractModel):
             ) or "",
         }
 
+    def _parse_cancellation_payload(self, payload):
+        """Parse an order.cancelled payload into strict, ordered values."""
+        if not isinstance(payload, dict):
+            raise UserError(_("Salla order payload must be a JSON object."))
+
+        event_type = self._get_event_type(payload)
+        if event_type != "order.cancelled":
+            raise UserError(
+                _("Unsupported Salla cancellation event type: %s")
+                % (event_type or "unknown")
+            )
+
+        data = payload.get("data")
+        if not isinstance(data, dict):
+            raise UserError(_("Salla order payload is missing a valid data object."))
+
+        external_order_id = self._extract_order_id(data)
+        if not external_order_id:
+            raise UserError(_("Salla order payload is missing the external order ID."))
+
+        # Real Salla shape is not yet verified (assumption A1): accept the most
+        # plausible emission-time keys, data level first, then envelope level.
+        event_time_raw = (
+            data.get("canceled_at")
+            or data.get("cancelled_at")
+            or data.get("updated_at")
+            or data.get("created_at")
+            or payload.get("created_at")
+        )
+        external_event_time = self._parse_datetime(event_time_raw)
+
+        external_status = self._normalize_status(
+            data.get("status") or data.get("cancellation_status")
+        ) or "cancelled"
+
+        reason = _clean_scalar_id(data.get("reason"))
+        if reason:
+            reason = reason[:200]
+
+        return {
+            "external_order_id": external_order_id,
+            "external_event_time": external_event_time,
+            "event_id": _first_clean_scalar_id(
+                payload.get("event_id"),
+                payload.get("uuid"),
+                payload.get("id"),
+            ) or "",
+            "external_status": external_status,
+            "reason": reason,
+        }
+
     def _parse_order_details_payload(self, data):
         """Parse and normalize Salla Merchant API Order Details response data.
 

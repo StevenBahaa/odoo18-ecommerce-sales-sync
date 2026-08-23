@@ -29,7 +29,8 @@ python C:\odoo18\odoo-bin -c C:\odoo18\conf\odoo.conf -d salla_test `
 /ecommerce_salla_connector:TestUC16TokenRefresh,`
 /ecommerce_salla_connector:TestUC17SallaAPIEnrichment,`
 /ecommerce_salla_connector:TestSallaLivePayloadCompatibility,`
-/ecommerce_salla_connector:TestUC20DemoDataBootstrap `
+/ecommerce_salla_connector:TestUC20DemoDataBootstrap,`
+/ecommerce_salla_connector:TestUC24OrderCancellation `
   --stop-after-init --no-http --log-level=error
 ```
 *Requirement:* Exit code `0` with all test suites passing.

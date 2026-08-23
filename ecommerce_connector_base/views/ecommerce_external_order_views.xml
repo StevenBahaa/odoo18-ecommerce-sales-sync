@@ -87,10 +87,19 @@
                         invisible="state not in ('failed', 'pending_review', 'pending_mapping', 'ready')"
                         groups="ecommerce_connector_base.group_ecommerce_connector_manager"
                     />
+                    <button
+                        name="action_cancel_external_order"
+                        string="Mark Cancelled"
+                        type="object"
+                        class="btn-danger"
+                        invisible="state in ('imported', 'cancelled', 'duplicate')"
+                        groups="ecommerce_connector_base.group_ecommerce_connector_manager"
+                        confirm="Mark this external order as cancelled? This does not modify any linked Odoo documents."
+                    />
                     <field
                         name="state"
                         widget="statusbar"
-                        statusbar_visible="draft,captured,pending_mapping,ready,imported"
+                        statusbar_visible="draft,captured,pending_mapping,ready,imported,cancelled"
                     />
                 </header>
 

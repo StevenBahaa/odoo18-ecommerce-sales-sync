@@ -31,8 +31,9 @@ Evidence: current <code>develop</code> branch, implementation, targeted tests, G
 | UC-21 | Documentation, Release Polish, and CI | Complete README rewrite, manual test cases for UC-13/14, refreshed architecture/context docs, docs/13_SCREENSHOT_GUIDE.md, docs/RELEASE_CHECKLIST.md, module versions bumped to 18.0.2.0.0, GitHub Actions static-checks and odoo-tests workflows. |
 | UC-22 | Salla Live Payload Compatibility and Status Normalization | Strict shared status normalizer (slug -> name string hierarchy), timezone-aware Salla datetime parsing, customer identity/mobile normalization, context-safe monetary parsing, nested product/variant ID and line amount mapping, strict malformed-line/quantity/float-boundary validation, and orders.read_write OAuth scope preflight support. |
 | UC-23 | Webhook retry status synchronization | Imported external orders now close their linked failed/pending-review order-created webhooks, preserve webhook error audit history, and allow idempotent repair from either retry entry point. |
+| UC-24 | Order cancellation handling | order.cancelled routing, watermark-ordered staging cancellation, policy-gated sale-order cancellation, manual manager cancel, sample payload + Mock Lab template, focused tests. |
 
-UC-21 documentation, release polish, and CI validated: all manual and automated checks passed; full regression suite (13 test classes across UC-12 through UC-23) passing.
+UC-24 order cancellation handling validated: all manual and automated checks passed; full regression suite (14 test classes across UC-12 through UC-24) passing.
 
 ## Features in progress
 
@@ -46,7 +47,7 @@ No UC implementation is currently in progress.
 
 ## Known bugs
 
-No confirmed connector defects remain. The full regression suite (13 test classes) passes with 0 failures, 0 errors, both locally and on GitHub Actions CI (`static-checks` and `odoo-tests` workflows passing on `develop` and `main`).
+No confirmed connector defects remain. The full regression suite (14 test classes) passes with 0 failures, 0 errors, both locally and on GitHub Actions CI (`static-checks` and `odoo-tests` workflows passing on `develop` and `main`).
 
 Real Salla payload compatibility, especially product identifier shapes beyond the bundled samples, **needs further investigation** against live documentation/payload captures before production use.
 
@@ -54,9 +55,9 @@ Real Salla payload compatibility, especially product identifier shapes beyond th
 
 | Item | Status |
 | --- | --- |
-| Current active development line | <code>develop</code> (UC-00 through UC-23 complete). |
+| Current active development line | <code>develop</code> (UC-00 through UC-24 complete). |
 | Latest recorded main-branch milestone | <code>v1.0.0-portfolio-mvp</code> (tagged and pushed to remote). |
-| Next milestone | None scheduled. Portfolio MVP scope is complete. |
+| Next milestone | None scheduled. Portfolio MVP scope is complete through UC-24. |
 
 ## Prioritized next work
 
