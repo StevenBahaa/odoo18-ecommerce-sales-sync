@@ -1,0 +1,1822 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* ecommerce_connector_base
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 18.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-25 14:15+0000\n"
+"PO-Revision-Date: 2026-08-25 14:15+0000\n"
+"Last-Translator: Steven Bahaa <stevenbahaa08@gmail.com>\n"
+"Language-Team: Arabic <ar@li.org>\n"
+"Language: ar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+msgid ""
+"<strong>Tax Note:</strong> The <code>tax_amount</code> shown above is the "
+"external platform's reported tax. When the sale order is created, Odoo's own"
+" tax engine will recalculate taxes based on configured tax rules. The "
+"imported tax amount is for reference and reconciliation only."
+msgstr ""
+"<strong>ملاحظة ضريبية:</strong> قيمة <code>tax_amount</code> المعروضة أعلاه "
+"هي الضريبة المُبلّغ عنها من المنصة الخارجية. عند إنشاء أمر البيع، سيعيد محرك"
+" الضرائب في Odoo حساب الضرائب استنادًا إلى قواعد الضرائب المُهيأة. مبلغ "
+"الضريبة المستورد هو للمطابقة والمراجعة فقط."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.constraint,message:ecommerce_connector_base.constraint_sale_order_ecommerce_store_external_order_unique
+msgid ""
+"A sale order with this external reference already exists for this store."
+msgstr "يوجد أمر بيع بهذا المرجع الخارجي لهذا المتجر بالفعل."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.constraint,message:ecommerce_connector_base.constraint_ecommerce_store_unique_platform_identifier_company
+msgid ""
+"A store with this platform and identifier already exists for this company."
+msgstr "يوجد متجر بهذه المنصة والمعرّف لهذه الشركة بالفعل."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+msgid "API Credentials"
+msgstr "بيانات اعتماد واجهة برمجة التطبيقات (API)"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__client_secret
+msgid "API client secret. Masked in the UI, but not database-encrypted."
+msgstr ""
+"الرمز السري لعميل API. مخفي في واجهة المستخدم، لكنه غير مشفر في قاعدة "
+"البيانات."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__access_token
+msgid "Access Token"
+msgstr "رمز الوصول"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__access_token_expires_at
+msgid "Access Token Expires At"
+msgstr "تاريخ انتهاء صلاحية رمز الوصول"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+msgid "Accounting"
+msgstr "المحاسبة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__message_needaction
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__message_needaction
+msgid "Action Needed"
+msgstr "إجراء مطلوب"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_customer_mapping__active
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_product_mapping__active
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__active
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_search
+msgid "Active"
+msgstr "نشط"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__activity_ids
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__activity_ids
+msgid "Activities"
+msgstr "الأنشطة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__activity_exception_decoration
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__activity_exception_decoration
+msgid "Activity Exception Decoration"
+msgstr "زخرفة استثناء النشاط"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__activity_state
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__activity_state
+msgid "Activity State"
+msgstr "حالة النشاط"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__activity_type_icon
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__activity_type_icon
+msgid "Activity Type Icon"
+msgstr "أيقونة نوع النشاط"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_external_order_line__match_method__ambiguous
+msgid "Ambiguous SKU"
+msgstr "رمز SKU ملتبس"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_line_form
+msgid "Amounts"
+msgstr "المبالغ"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.constraint,message:ecommerce_connector_base.constraint_ecommerce_external_order_unique_store_external_order
+msgid "An external order with this ID already exists for this store."
+msgstr "يوجد طلب خارجي بهذا المعرّف لهذا المتجر بالفعل."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_external_order_report
+msgid ""
+"Analyze external order volume and value grouped by store and processing "
+"status."
+msgstr "تحليل حجم وقيمة الطلبات الخارجية مجمعة حسب المتجر وحالة المعالجة."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_webhook_event_report
+msgid ""
+"Analyze webhook delivery health grouped by store and processing status."
+msgstr "تحليل صحة تسليم Webhook مجمعة حسب المتجر وحالة المعالجة."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__cancellation_policy
+msgid ""
+"Applied when an order.cancelled webhook arrives for an already imported "
+"order. 'Stage Record Only' cancels the staged external order and never "
+"touches the Odoo sale order. 'Cancel Linked Draft Sale Order' also cancels "
+"the linked quotation while it is still in draft or sent state; if the sale "
+"order cannot be cancelled, the whole event is parked for review and nothing "
+"is changed."
+msgstr ""
+"تُطبّق عند وصول إشعار order.cancelled لطلب تم استيراده بالفعل. 'إلغاء سجل "
+"المرحلة فقط' يلغي الطلب الخارجي المؤقت ولا يمس أمر بيع Odoo مطلقًا. 'إلغاء "
+"أمر البيع المسودة المرتبط' يلغي أيضًا عرض السعر المرتبط طالما كان في حالة "
+"مسودة أو مُرسل؛ إذا تعذر إلغاء أمر البيع، يتم تعليق الحدث بالكامل للمراجعة "
+"دون تغيير أي شيء."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_customer_mapping_form
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_customer_mapping_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_product_mapping_form
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_product_mapping_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_search
+msgid "Archived"
+msgstr "مؤرشف"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__message_attachment_count
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__message_attachment_count
+msgid "Attachment Count"
+msgstr "عدد المرفقات"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_store__order_import_policy__auto_when_ready
+msgid "Auto Import When Ready"
+msgstr "استيراد تلقائي عند الجاهزية"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_store__cancellation_policy__cancel_linked_sale_order
+msgid "Cancel Linked Draft Sale Order"
+msgstr "إلغاء أمر البيع المسودة المرتبط"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__cancellation_policy
+msgid "Cancellation Policy"
+msgstr "سياسة الإلغاء"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_external_order__state__cancelled
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_sale_order_search
+msgid "Cancelled"
+msgstr "ملغى"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_external_order__state__captured
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_search
+msgid "Captured"
+msgstr "مستلم"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__client_id
+msgid "Client"
+msgstr "العميل"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__client_secret
+msgid "Client Secret"
+msgstr "الرمز السري للعميل"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+msgid "Commercial Values"
+msgstr "القيم التجارية"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_customer_mapping__company_id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__company_id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__company_id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_product_mapping__company_id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__company_id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__company_id
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_line_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_search
+msgid "Company"
+msgstr "الشركة"
+
+#. module: ecommerce_connector_base
+#: model:ir.ui.menu,name:ecommerce_connector_base.menu_ecommerce_connector_configuration
+msgid "Configuration"
+msgstr "التهيئة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model,name:ecommerce_connector_base.model_res_partner
+msgid "Contact"
+msgstr "جهة الاتصال"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+msgid "Create Sale Order"
+msgstr "إنشاء أمر بيع"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_store
+msgid "Create your first e-commerce store."
+msgstr "أنشئ أول متجر تجارة إلكترونية لك."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__sale_order_id
+msgid "Created Sale Order"
+msgstr "أمر البيع المُنشأ"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_customer_mapping__create_uid
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__create_uid
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__create_uid
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_product_mapping__create_uid
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__create_uid
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__create_uid
+msgid "Created by"
+msgstr "أنشئ بواسطة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_customer_mapping__create_date
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__create_date
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__create_date
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_product_mapping__create_date
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__create_date
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__create_date
+msgid "Created on"
+msgstr "أنشئ في"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+msgid "Credentials"
+msgstr "بيانات الاعتماد"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__currency_id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__currency_id
+msgid "Currency"
+msgstr "العملة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__currency_mismatch
+msgid "Currency Mismatch"
+msgstr "عدم تطابق العملة"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+msgid "Customer"
+msgstr "العميل"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__customer_email
+msgid "Customer Email"
+msgstr "البريد الإلكتروني للعميل"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_customer_mapping_form
+msgid "Customer Mapping"
+msgstr "ربط العميل"
+
+#. module: ecommerce_connector_base
+#: model:ir.actions.act_window,name:ecommerce_connector_base.action_ecommerce_customer_mapping
+#: model:ir.ui.menu,name:ecommerce_connector_base.menu_ecommerce_customer_mapping
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_customer_mapping_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_customer_mapping_tree
+msgid "Customer Mappings"
+msgstr "ربط العملاء"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__customer_name
+msgid "Customer Name"
+msgstr "اسم العميل"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__customer_phone
+msgid "Customer Phone"
+msgstr "هاتف العميل"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.constraint,message:ecommerce_connector_base.constraint_ecommerce_customer_mapping_unique_store_external_customer
+msgid "Customer mapping already exists for this store."
+msgstr "يوجد ربط عميل لهذا المتجر بالفعل."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_customer_mapping
+msgid "Customer mappings are created automatically when orders are imported."
+msgstr "يتم إنشاء ربط العملاء تلقائيًا عند استيراد الطلبات."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_search
+msgid "Day"
+msgstr "اليوم"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__integration_user_id
+msgid ""
+"Dedicated technical user used later for business processing. If this user is"
+" not configured, webhook processing may only store raw events and must not "
+"create partners, products, or sale orders with broad sudo access."
+msgstr ""
+"مستخدم تقني مخصص يُستخدم لاحقًا لمعالجة الأعمال. إذا لم تتم تهيئة هذا "
+"المستخدم، تقتصر معالجة Webhook على تخزين الأحداث الخام فقط ويُحظر إنشاء "
+"شركاء أو منتجات أو أوامر بيع بصلاحيات sudo واسعة."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__default_journal_id
+msgid "Default Journal"
+msgstr "دفتر اليومية الافتراضي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__default_pricelist_id
+msgid "Default Pricelist"
+msgstr "قائمة الأسعار الافتراضية"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__default_sales_team_id
+msgid "Default Sales Team"
+msgstr "فريق المبيعات الافتراضي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__default_warehouse_id
+msgid "Default Warehouse"
+msgstr "المستودع الافتراضي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_store__environment__demo
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_search
+msgid "Demo"
+msgstr "تجريبي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__discount_amount
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__discount_amount
+msgid "Discount Amount"
+msgstr "مبلغ الخصم"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__discount_strategy
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__discount_strategy
+msgid "Discount Strategy"
+msgstr "استراتيجية الخصم"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_customer_mapping__display_name
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__display_name
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__display_name
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_product_mapping__display_name
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__display_name
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__display_name
+msgid "Display Name"
+msgstr "الاسم المعروض"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_external_order__state__draft
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_search
+msgid "Draft"
+msgstr "مسودة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_external_order__state__duplicate
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_webhook_event__processing_status__duplicate
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_search
+msgid "Duplicate"
+msgstr "مكرر"
+
+#. module: ecommerce_connector_base
+#: model:ir.module.category,name:ecommerce_connector_base.module_category_ecommerce_connector
+#: model:ir.ui.menu,name:ecommerce_connector_base.menu_ecommerce_connector_root
+msgid "E-commerce Connector"
+msgstr "موصل التجارة الإلكترونية"
+
+#. module: ecommerce_connector_base
+#: model:res.groups,name:ecommerce_connector_base.group_ecommerce_connector_manager
+msgid "E-commerce Connector Manager"
+msgstr "مدير موصل التجارة الإلكترونية"
+
+#. module: ecommerce_connector_base
+#: model:res.groups,name:ecommerce_connector_base.group_ecommerce_connector_user
+msgid "E-commerce Connector User"
+msgstr "مستخدم موصل التجارة الإلكترونية"
+
+#. module: ecommerce_connector_base
+#: model:ir.model,name:ecommerce_connector_base.model_ecommerce_customer_mapping
+msgid "E-commerce Customer Mapping"
+msgstr "ربط عميل التجارة الإلكترونية"
+
+#. module: ecommerce_connector_base
+#: model:ir.model,name:ecommerce_connector_base.model_ecommerce_external_order
+msgid "E-commerce External Order"
+msgstr "طلب خارجي للتجارة الإلكترونية"
+
+#. module: ecommerce_connector_base
+#: model:ir.model,name:ecommerce_connector_base.model_ecommerce_external_order_line
+msgid "E-commerce External Order Line"
+msgstr "بند طلب خارجي للتجارة الإلكترونية"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_sale_order__ecommerce_fulfillment_status
+msgid "E-commerce Fulfillment Status"
+msgstr "حالة الشحن للتجارة الإلكترونية"
+
+#. module: ecommerce_connector_base
+#: model:res.groups,name:ecommerce_connector_base.group_ecommerce_integration_manager
+msgid "E-commerce Integration Manager"
+msgstr "مدير تكامل التجارة الإلكترونية"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_res_partner__ecommerce_normalized_mobile
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_res_users__ecommerce_normalized_mobile
+msgid "E-commerce Normalized Mobile"
+msgstr "رقم الجوال الموحّد للتجارة الإلكترونية"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_res_partner__ecommerce_normalized_phone
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_res_users__ecommerce_normalized_phone
+msgid "E-commerce Normalized Phone"
+msgstr "رقم الهاتف الموحّد للتجارة الإلكترونية"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_sale_order__ecommerce_payment_status
+msgid "E-commerce Payment Status"
+msgstr "حالة الدفع للتجارة الإلكترونية"
+
+#. module: ecommerce_connector_base
+#: model:ir.model,name:ecommerce_connector_base.model_ecommerce_product_mapping
+msgid "E-commerce Product Mapping"
+msgstr "ربط منتج التجارة الإلكترونية"
+
+#. module: ecommerce_connector_base
+#: model:ir.model,name:ecommerce_connector_base.model_ecommerce_store
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_sale_order__ecommerce_store_id
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+msgid "E-commerce Store"
+msgstr "متجر التجارة الإلكترونية"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_list
+msgid "E-commerce Stores"
+msgstr "متاجر التجارة الإلكترونية"
+
+#. module: ecommerce_connector_base
+#: model:ir.model,name:ecommerce_connector_base.model_ecommerce_webhook_event
+msgid "E-commerce Webhook Event"
+msgstr "حدث Webhook للتجارة الإلكترونية"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__environment
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_search
+msgid "Environment"
+msgstr "البيئة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__environment
+msgid "Environment in which the store operates."
+msgstr "البيئة التي يعمل فيها المتجر."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_line_form
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_form
+msgid "Error"
+msgstr "خطأ"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__error_history
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__error_history
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_form
+msgid "Error History"
+msgstr "سجل الأخطاء"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__error_message
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__error_message
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__error_message
+msgid "Error Message"
+msgstr "رسالة الخطأ"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+msgid "Error details will appear here."
+msgstr "ستظهر تفاصيل الخطأ هنا."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+msgid "Errors / Warnings"
+msgstr "الأخطاء / التحذيرات"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_form
+msgid "Event"
+msgstr "الحدث"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__name
+msgid "Event Reference"
+msgstr "مرجع الحدث"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__event_type
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_search
+msgid "Event Type"
+msgstr "نوع الحدث"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_customer_mapping__external_customer_id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__external_customer_id
+msgid "External Customer ID"
+msgstr "معرّف العميل الخارجي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_customer_mapping__external_email
+msgid "External Email"
+msgstr "البريد الإلكتروني الخارجي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__external_event_id
+msgid "External Event ID"
+msgstr "معرّف الحدث الخارجي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__external_line_id
+msgid "External Line ID"
+msgstr "معرّف البند الخارجي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__external_order_id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_sale_order__ecommerce_external_order_id
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_line_search
+msgid "External Order"
+msgstr "طلب خارجي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__order_date
+msgid "External Order Date"
+msgstr "تاريخ الطلب الخارجي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__external_order_id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__external_order_id
+msgid "External Order ID"
+msgstr "معرّف الطلب الخارجي"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_line_form
+msgid "External Order Line"
+msgstr "بند الطلب الخارجي"
+
+#. module: ecommerce_connector_base
+#: model:ir.actions.act_window,name:ecommerce_connector_base.action_ecommerce_external_order_line
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__line_ids
+#: model:ir.ui.menu,name:ecommerce_connector_base.menu_ecommerce_external_order_line
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_line_list
+msgid "External Order Lines"
+msgstr "بنود الطلب الخارجي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__external_order_reference
+msgid "External Order Reference"
+msgstr "مرجع الطلب الخارجي"
+
+#. module: ecommerce_connector_base
+#: model:ir.actions.act_window,name:ecommerce_connector_base.action_ecommerce_external_order
+#: model:ir.ui.menu,name:ecommerce_connector_base.menu_ecommerce_external_order
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_list
+msgid "External Orders"
+msgstr "الطلبات الخارجية"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_customer_mapping__external_phone
+msgid "External Phone"
+msgstr "الهاتف الخارجي"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_line_form
+msgid "External Product"
+msgstr "المنتج الخارجي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__external_product_id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_product_mapping__external_product_id
+msgid "External Product ID"
+msgstr "معرّف المنتج الخارجي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_sale_order__ecommerce_external_reference
+msgid "External Reference"
+msgstr "المرجع الخارجي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__external_sku
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_product_mapping__external_sku
+msgid "External SKU"
+msgstr "رمز SKU الخارجي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__external_status
+msgid "External Status"
+msgstr "الحالة الخارجية"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__external_variant_id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_product_mapping__external_variant_id
+msgid "External Variant ID"
+msgstr "معرّف المتغير الخارجي"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_external_order_line
+msgid ""
+"External order lines stage external products before Odoo product mapping."
+msgstr "تؤهل بنود الطلب الخارجي المنتجات الخارجية قبل ربطها بمنتجات Odoo."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_external_order
+msgid "External orders are staging records created before Odoo sale orders."
+msgstr "الطلبات الخارجية هي سجلات تأهيل مؤقتة تُنشأ قبل أوامر بيع Odoo."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__store_identifier
+msgid ""
+"External store identifier. For Mock Mode, this can be an internal demo code."
+msgstr ""
+"معرّف المتجر الخارجي. في وضع المحاكاة، يمكن أن يكون هذا رمزًا تجريبيًا "
+"داخليًا."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_external_order__state__failed
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_external_order_line__state__failed
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_webhook_event__processing_status__failed
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_line_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_search
+msgid "Failed"
+msgstr "فاشل"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__message_follower_ids
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__message_follower_ids
+msgid "Followers"
+msgstr "المتابعون"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__message_partner_ids
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__message_partner_ids
+msgid "Followers (Partners)"
+msgstr "المتابعون (الشركاء)"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_external_order__activity_type_icon
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__activity_type_icon
+msgid "Font awesome icon e.g. fa-tasks"
+msgstr "أيقونة Font Awesome مثل fa-tasks"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__fulfillment_status
+msgid "Fulfillment Status"
+msgstr "حالة الشحن"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_customer_mapping_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_line_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_product_mapping_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_sale_order_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_search
+msgid "Group By"
+msgstr "تجميع حسب"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__http_status_returned
+msgid "HTTP Status Returned"
+msgstr "رمز حالة HTTP المُعاد"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__has_message
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__has_message
+msgid "Has Message"
+msgstr "يحتوي على رسالة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_customer_mapping__id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_product_mapping__id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__id
+msgid "ID"
+msgstr "المعرّف"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__activity_exception_icon
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__activity_exception_icon
+msgid "Icon"
+msgstr "الأيقونة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_external_order__activity_exception_icon
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__activity_exception_icon
+msgid "Icon to indicate an exception activity."
+msgstr "أيقونة للإشارة إلى نشاط استثنائي."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_external_order__message_needaction
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__message_needaction
+msgid "If checked, new messages require your attention."
+msgstr "إذا تم التحديد، تتطلب الرسائل الجديدة انتباهك."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_external_order__message_has_error
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_external_order__message_has_sms_error
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__message_has_error
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__message_has_sms_error
+msgid "If checked, some messages have a delivery error."
+msgstr "إذا تم التحديد، فإن بعض الرسائل بها خطأ تسليم."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_webhook_event__processing_status__ignored
+msgid "Ignored"
+msgstr "تم التجاهل"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+msgid "Import"
+msgstr "استيراد"
+
+#. module: ecommerce_connector_base
+#: model:ir.actions.act_window,name:ecommerce_connector_base.action_ecommerce_error_queue
+#: model:ir.ui.menu,name:ecommerce_connector_base.menu_ecommerce_error_queue
+msgid "Import Error Queue"
+msgstr "طابور أخطاء الاستيراد"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_external_order__state__imported
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_search
+msgid "Imported"
+msgstr "مستورد"
+
+#. module: ecommerce_connector_base
+#: model:ir.actions.act_window,name:ecommerce_connector_base.action_ecommerce_sale_order
+#: model:ir.ui.menu,name:ecommerce_connector_base.menu_ecommerce_sale_order
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_sale_order_list
+msgid "Imported Sale Orders"
+msgstr "أوامر البيع المستوردة"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_webhook_event
+msgid ""
+"Incoming webhook requests will be stored here before any business "
+"processing."
+msgstr "سيتم تخزين طلبات Webhook الواردة هنا قبل أي معالجة للأعمال."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+msgid "Integration Safety"
+msgstr "أمان التكامل"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__integration_user_id
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+msgid "Integration User"
+msgstr "مستخدم التكامل"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_webhook_event__processing_status__invalid_signature
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_search
+msgid "Invalid Signature"
+msgstr "توقيع غير صالح"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_search
+msgid "Invalid Signature Flag"
+msgstr "علامة توقيع غير صالح"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__message_is_follower
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__message_is_follower
+msgid "Is Follower"
+msgstr "متابع"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__last_external_update_at
+msgid "Last External Update"
+msgstr "آخر تحديث خارجي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__last_external_update_event_id
+msgid "Last External Update Event ID"
+msgstr "معرّف حدث آخر تحديث خارجي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__last_oauth_authorize_event_id
+msgid "Last Oauth Authorize Event"
+msgstr "حدث آخر تفويض OAuth"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__last_oauth_authorized_at
+msgid "Last Oauth Authorized At"
+msgstr "تاريخ آخر تفويض OAuth"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_customer_mapping__last_order_at
+msgid "Last Order Date"
+msgstr "تاريخ آخر طلب"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__last_processed_at
+msgid "Last Processed At"
+msgstr "تاريخ آخر معالجة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__last_retry_at
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__last_retry_at
+msgid "Last Retry At"
+msgstr "تاريخ آخر إعادة محاولة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__last_retry_by_id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__last_retry_by_id
+msgid "Last Retry By"
+msgstr "آخر إعادة محاولة بواسطة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_product_mapping__last_seen_at
+msgid "Last Seen At"
+msgstr "آخر ظهور في"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__last_token_refresh_at
+msgid "Last Token Refresh At"
+msgstr "تاريخ آخر تحديث للرمز"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_customer_mapping__write_uid
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__write_uid
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__write_uid
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_product_mapping__write_uid
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__write_uid
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__write_uid
+msgid "Last Updated by"
+msgstr "آخر تحديث بواسطة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_customer_mapping__write_date
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__write_date
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__write_date
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_product_mapping__write_date
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__write_date
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__write_date
+msgid "Last Updated on"
+msgstr "آخر تحديث في"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__last_webhook_received_at
+msgid "Last Webhook Received At"
+msgstr "تاريخ آخر Webhook مستلم"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__line_count
+msgid "Line Count"
+msgstr "عدد البنود"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_store__discount_strategy__line_discount
+msgid "Line Discount"
+msgstr "خصم البند"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+msgid "Lines"
+msgstr "البنود"
+
+#. module: ecommerce_connector_base
+#: model:ir.module.category,description:ecommerce_connector_base.module_category_ecommerce_connector
+msgid "Manage e-commerce sales synchronization and connector configuration."
+msgstr "إدارة مزامنة مبيعات التجارة الإلكترونية وتهيئة الموصل."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_external_order_line__match_method__manual
+msgid "Manual"
+msgstr "يدوي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_store__platform__manual_mock
+msgid "Manual / Mock"
+msgstr "يدوي / محاكاة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_store__order_import_policy__manual_validate
+msgid "Manual Validation Before Sale Order"
+msgstr "التحقق اليدوي قبل إنشاء أمر البيع"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__order_import_policy
+msgid ""
+"Manual Validation requires a manager to click 'Create Sale Order' when the "
+"order is Ready. Auto Import When Ready is reserved for a future UC and is "
+"currently inactive — selecting it has no effect."
+msgstr ""
+"يتطلب التحقق اليدوي أن يضغط المدير على 'إنشاء أمر بيع' عندما يصبح الطلب "
+"جاهزًا. الاستيراد التلقائي عند الجاهزية محجوز لحالة استخدام مستقبلية وغير "
+"نشط حاليًا — اختياره ليس له أي تأثير."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_external_order_line__state__mapped
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_line_search
+msgid "Mapped"
+msgstr "تم الربط"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_external_order_line__match_method__mapping
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_line_form
+msgid "Mapping"
+msgstr "الربط"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+msgid "Mark Cancelled"
+msgstr "تعيين كملغى"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+msgid "Mark Captured"
+msgstr "تعيين كمستلم"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+msgid ""
+"Mark this external order as cancelled? This does not modify any linked Odoo "
+"documents."
+msgstr ""
+"هل تريد تعيين هذا الطلب الخارجي كملغى؟ لن يؤدي هذا إلى تعديل أي مستندات Odoo"
+" مرتبطة."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__match_method
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_line_search
+msgid "Match Method"
+msgstr "طريقة المطابقة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__partner_id
+msgid "Matched Customer"
+msgstr "العميل المطابق"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__product_id
+msgid "Matched Product"
+msgstr "المنتج المطابق"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__message_has_error
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__message_has_error
+msgid "Message Delivery error"
+msgstr "خطأ في تسليم الرسالة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__message_ids
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__message_ids
+msgid "Messages"
+msgstr "الرسائل"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_store__environment__mock
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_search
+msgid "Mock"
+msgstr "محاكاة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__my_activity_date_deadline
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__my_activity_date_deadline
+msgid "My Activity Deadline"
+msgstr "الموعد النهائي لنشاطي"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_search
+msgid "Needs Attention"
+msgstr "يحتاج إلى انتباه"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__activity_date_deadline
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__activity_date_deadline
+msgid "Next Activity Deadline"
+msgstr "الموعد النهائي للنشاط التالي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__activity_summary
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__activity_summary
+msgid "Next Activity Summary"
+msgstr "ملخص النشاط التالي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__activity_type_id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__activity_type_id
+msgid "Next Activity Type"
+msgstr "نوع النشاط التالي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_store__stock_sync_policy__none
+msgid "No Stock Sync"
+msgstr "بدون مزامنة مخزون"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_customer_mapping
+msgid "No customer mappings found."
+msgstr "لم يتم العثور على ربط للعملاء."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_sale_order
+msgid "No e-commerce sale orders yet."
+msgstr "لا توجد أوامر بيع للتجارة الإلكترونية بعد."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_external_order_line
+msgid "No external order lines yet."
+msgstr "لا توجد بنود طلب خارجي بعد."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_external_order
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_external_order_report
+msgid "No external orders yet."
+msgstr "لا توجد طلبات خارجية بعد."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_error_queue
+msgid "No orders need attention right now."
+msgstr "لا توجد طلبات تحتاج إلى انتباه حاليًا."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_product_mapping
+msgid "No product mappings found."
+msgstr "لم يتم العثور على ربط للمنتجات."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_webhook_event
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_webhook_event_report
+msgid "No webhook events yet."
+msgstr "لا توجد أحداث Webhook بعد."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_external_order_line__match_method__none
+msgid "None"
+msgstr "لا يوجد"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__normalized_customer_phone
+msgid "Normalized Customer Phone"
+msgstr "رقم هاتف العميل الموحّد"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_customer_mapping__normalized_phone
+msgid "Normalized Phone"
+msgstr "الهاتف الموحّد"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_store__discount_strategy__note_only
+msgid "Note Only"
+msgstr "ملاحظة فقط"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__message_needaction_counter
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__message_needaction_counter
+msgid "Number of Actions"
+msgstr "عدد الإجراءات"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__message_has_error_counter
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__message_has_error_counter
+msgid "Number of errors"
+msgstr "عدد الأخطاء"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_external_order__message_needaction_counter
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__message_needaction_counter
+msgid "Number of messages requiring action"
+msgstr "عدد الرسائل التي تتطلب إجراءً"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_external_order__message_has_error_counter
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__message_has_error_counter
+msgid "Number of messages with delivery error"
+msgstr "عدد الرسائل التي بها خطأ تسليم"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+msgid "OAuth Metadata"
+msgstr "البيانات الوصفية لـ OAuth"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__oauth_scope
+msgid "Oauth Scope"
+msgstr "نطاق OAuth"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__oauth_token_type
+msgid "Oauth Token Type"
+msgstr "نوع رمز OAuth"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+msgid "Operational Defaults"
+msgstr "الإعدادات التشغيلية الافتراضية"
+
+#. module: ecommerce_connector_base
+#: model:ir.ui.menu,name:ecommerce_connector_base.menu_ecommerce_connector_operations
+msgid "Operations"
+msgstr "العمليات"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_line_form
+msgid "Order"
+msgstr "الطلب"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__order_import_policy
+msgid "Order Import Policy"
+msgstr "سياسة استيراد الطلب"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_sale_order_search
+msgid "Order Month"
+msgstr "شهر الطلب"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__name
+msgid "Order Reference"
+msgstr "مرجع الطلب"
+
+#. module: ecommerce_connector_base
+#: model:ir.actions.act_window,name:ecommerce_connector_base.action_ecommerce_external_order_report
+#: model:ir.ui.menu,name:ecommerce_connector_base.menu_ecommerce_external_order_report
+msgid "Orders by Store & Status"
+msgstr "الطلبات حسب المتجر والحالة"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_graph
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_pivot
+msgid "Orders by Store and Status"
+msgstr "الطلبات حسب المتجر والحالة"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_error_queue
+msgid ""
+"Orders that fail validation, mapping, or creation will appear here for "
+"manager review and retry."
+msgstr ""
+"ستظهر الطلبات التي تفشل في التحقق أو الربط أو الإنشاء هنا لمراجعة المدير "
+"وإعادة المحاولة."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_customer_mapping__partner_id
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_customer_mapping_search
+msgid "Partner"
+msgstr "الشريك"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__payment_status
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_sale_order_search
+msgid "Payment Status"
+msgstr "حالة الدفع"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_external_order__state__pending_mapping
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_external_order_line__state__pending_mapping
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_line_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_search
+msgid "Pending Mapping"
+msgstr "قيد الربط"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_external_order__state__pending_review
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_webhook_event__processing_status__pending_review
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_search
+msgid "Pending Review"
+msgstr "قيد المراجعة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__platform
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__platform
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__platform
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_sale_order__ecommerce_platform
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_sale_order_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_search
+msgid "Platform"
+msgstr "المنصة"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+msgid "Policies"
+msgstr "السياسات"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_webhook_event__processing_status__processed
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_search
+msgid "Processed"
+msgstr "تمت المعالجة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__processed_at
+msgid "Processed At"
+msgstr "تاريخ المعالجة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_webhook_event__processing_status__processing
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_form
+msgid "Processing"
+msgstr "جارِ المعالجة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__processing_status
+msgid "Processing Status"
+msgstr "حالة المعالجة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_product_mapping__product_id
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_product_mapping_search
+msgid "Product"
+msgstr "المنتج"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_product_mapping_form
+msgid "Product Mapping"
+msgstr "ربط المنتج"
+
+#. module: ecommerce_connector_base
+#: model:ir.actions.act_window,name:ecommerce_connector_base.action_ecommerce_product_mapping
+#: model:ir.ui.menu,name:ecommerce_connector_base.menu_ecommerce_product_mapping
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_product_mapping_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_product_mapping_tree
+msgid "Product Mappings"
+msgstr "ربط المنتجات"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__product_name
+msgid "Product Name"
+msgstr "اسم المنتج"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.constraint,message:ecommerce_connector_base.constraint_ecommerce_product_mapping_unique_store_product_variant
+msgid "Product mapping already exists for this store/product/variant."
+msgstr "يوجد ربط منتج لهذا المتجر/المنتج/المتغير بالفعل."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_product_mapping
+msgid ""
+"Product mappings connect external e-commerce products and variants to Odoo "
+"products."
+msgstr ""
+"يربط ربط المنتجات منتجات ومتغيرات التجارة الإلكترونية الخارجية بمنتجات Odoo."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_store__environment__production
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_search
+msgid "Production"
+msgstr "الإنتاج"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_store__discount_strategy__proportional
+msgid "Proportional Allocation"
+msgstr "التخصيص النسبي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__quantity
+msgid "Quantity"
+msgstr "الكمية"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_sale_order_search
+msgid "Quotation"
+msgstr "عرض سعر"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_sale_order_search
+msgid "Quotation Sent"
+msgstr "تم إرسال عرض السعر"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__webhook_token
+msgid "Random URL token used to identify this store webhook endpoint."
+msgstr "رمز URL عشوائي يُستخدم لتعريف نقطة نهاية Webhook لهذا المتجر."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+msgid "Rate Limit"
+msgstr "حد معدل الطلبات"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__rate_limit_max_events
+msgid "Rate Limit Max Events"
+msgstr "أقصى عدد أحداث لحد المعدل"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__rate_limit_window_seconds
+msgid "Rate Limit Window Seconds"
+msgstr "نافذة حد المعدل بالثواني"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_webhook_event__processing_status__rate_limited
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_search
+msgid "Rate Limited"
+msgstr "تجاوز حد المعدل"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__raw_line_payload
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_line_form
+msgid "Raw Line Payload"
+msgstr "البيانات الخام للبند"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__raw_payload
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__raw_payload
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_form
+msgid "Raw Payload"
+msgstr "البيانات الخام"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_external_order__state__ready
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_search
+msgid "Ready"
+msgstr "جاهز"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_webhook_event__processing_status__received
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_search
+msgid "Received"
+msgstr "مستلم"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__refresh_token
+msgid "Refresh Token"
+msgstr "رمز التحديث"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__refresh_token_expires_at
+msgid "Refresh Token Expires At"
+msgstr "تاريخ انتهاء صلاحية رمز التحديث"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__refresh_token_issued_at
+msgid "Refresh Token Issued At"
+msgstr "تاريخ إصدار رمز التحديث"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+msgid "Regenerate Webhook Token"
+msgstr "إعادة إنشاء رمز Webhook"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__related_external_order_id
+msgid "Related External Order"
+msgstr "الطلب الخارجي المرتبط"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__related_partner_id
+msgid "Related Partner"
+msgstr "الشريك المرتبط"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__related_product_id
+msgid "Related Product"
+msgstr "المنتج المرتبط"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_form
+msgid "Related Records"
+msgstr "السجلات المرتبطة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__related_sale_order_id
+msgid "Related Sale Order"
+msgstr "أمر البيع المرتبط"
+
+#. module: ecommerce_connector_base
+#: model:ir.ui.menu,name:ecommerce_connector_base.menu_ecommerce_connector_reporting
+msgid "Reporting"
+msgstr "التقارير"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_form
+msgid "Request Headers"
+msgstr "ترويسات الطلب"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__headers_json
+msgid "Request Headers (JSON)"
+msgstr "ترويسات الطلب (JSON)"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+msgid "Reset to Draft"
+msgstr "إعادة التعيين إلى مسودة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__activity_user_id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__activity_user_id
+msgid "Responsible User"
+msgstr "المستخدم المسؤول"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_form
+msgid "Retry Audit"
+msgstr "سجل مراجعة إعادة المحاولة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__retry_count
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__retry_count
+msgid "Retry Count"
+msgstr "عدد إعادات المحاولة"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+msgid "Retry Import"
+msgstr "إعادة محاولة الاستيراد"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_form
+msgid "Retry Processing"
+msgstr "إعادة محاولة المعالجة"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_search
+msgid "Retryable"
+msgstr "قابل لإعادة المحاولة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_external_order_line__match_method__sku
+msgid "SKU"
+msgstr "رمز SKU"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__message_has_sms_error
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__message_has_sms_error
+msgid "SMS Delivery error"
+msgstr "خطأ في تسليم الرسائل القصيرة"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+msgid "Sale Order"
+msgstr "أمر البيع"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_sale_order
+msgid ""
+"Sale orders created from an external order will appear here, filtered to "
+"those linked to an e-commerce store."
+msgstr ""
+"ستظهر أوامر البيع المُنشأة من طلب خارجي هنا، مصفّاة للمرتبطة بمتجر تجارة "
+"إلكترونية."
+
+#. module: ecommerce_connector_base
+#: model:ir.model,name:ecommerce_connector_base.model_sale_order
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_sale_order_search
+msgid "Sales Order"
+msgstr "أمر البيع"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_sale_order_graph
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_sale_order_pivot
+msgid "Sales by Store"
+msgstr "المبيعات حسب المتجر"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_search
+msgid "Search E-commerce Stores"
+msgstr "البحث في متاجر التجارة الإلكترونية"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_line_search
+msgid "Search External Order Lines"
+msgstr "البحث في بنود الطلب الخارجي"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_search
+msgid "Search External Orders"
+msgstr "البحث في الطلبات الخارجية"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_sale_order_search
+msgid "Search Imported Sale Orders"
+msgstr "البحث في أوامر البيع المستوردة"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_search
+msgid "Search Webhook Events"
+msgstr "البحث في أحداث Webhook"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+msgid "Send to Pending Review"
+msgstr "إرسال إلى قيد المراجعة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_external_order__shipping_product_id
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__shipping_product_id
+msgid ""
+"Service product used later to represent shipping fees on imported sale "
+"orders."
+msgstr "منتج خدمي يُستخدم لاحقًا لتمثيل رسوم الشحن في أوامر البيع المستوردة."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__shipping_amount
+msgid "Shipping Amount"
+msgstr "مبلغ الشحن"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__shipping_product_id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__shipping_product_id
+msgid "Shipping Product"
+msgstr "منتج الشحن"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__signature_valid
+msgid "Signature Valid"
+msgstr "التوقيع صالح"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_store__cancellation_policy__stage_only
+msgid "Stage Record Only"
+msgstr "إلغاء سجل المرحلة فقط"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.actions.act_window,help:ecommerce_connector_base.action_ecommerce_store
+msgid ""
+"Start with Mock Mode to demonstrate the connector without live external "
+"credentials."
+msgstr "ابدأ بوضع المحاكاة لتجربة الموصل بدون بيانات اعتماد خارجية حية."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__state
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__state
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_line_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_search
+msgid "State"
+msgstr "الحالة"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_sale_order_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_search
+msgid "Status"
+msgstr "الحالة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_external_order__activity_state
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__activity_state
+msgid ""
+"Status based on activities\n"
+"Overdue: Due date is already passed\n"
+"Today: Activity date is today\n"
+"Planned: Future activities."
+msgstr ""
+"الحالة استنادًا إلى الأنشطة\n"
+"متأخر: تجاوز تاريخ الاستحقاق\n"
+"اليوم: تاريخ النشاط هو اليوم\n"
+"مخطط: أنشطة مستقبلية."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+msgid "Statuses"
+msgstr "الحالات"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields.selection,name:ecommerce_connector_base.selection__ecommerce_store__stock_sync_policy__readiness_only
+msgid "Stock Readiness Only"
+msgstr "جاهزية المخزون فقط"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__stock_sync_policy
+msgid "Stock Sync Policy"
+msgstr "سياسة مزامنة المخزون"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_customer_mapping__store_id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__store_id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__store_id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_product_mapping__store_id
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_webhook_event__store_id
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_customer_mapping_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_line_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_product_mapping_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_sale_order_search
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_search
+msgid "Store"
+msgstr "المتجر"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__store_identifier
+msgid "Store Identifier"
+msgstr "معرّف المتجر"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__name
+msgid "Store Name"
+msgstr "اسم المتجر"
+
+#. module: ecommerce_connector_base
+#: model:ir.actions.act_window,name:ecommerce_connector_base.action_ecommerce_store
+#: model:ir.ui.menu,name:ecommerce_connector_base.menu_ecommerce_store
+msgid "Stores"
+msgstr "المتاجر"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__subtotal
+msgid "Subtotal"
+msgstr "المجموع الفرعي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__tax_amount
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__tax_amount
+msgid "Tax Amount"
+msgstr "مبلغ الضريبة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_external_order__platform
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__platform
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_webhook_event__platform
+#: model:ir.model.fields,help:ecommerce_connector_base.field_sale_order__ecommerce_platform
+msgid ""
+"Technical platform handled by this store. Salla will be added by the Salla "
+"connector module."
+msgstr ""
+"المنصة التقنية التي يتعامل معها هذا المتجر. ستتم إضافة Salla بواسطة موديول "
+"موصل Salla."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.constraint,message:ecommerce_connector_base.constraint_ecommerce_store_unique_webhook_token
+msgid "The webhook token must be unique across stores."
+msgstr "يجب أن يكون رمز Webhook فريدًا عبر جميع المتاجر."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+msgid ""
+"This will change the webhook URL. Existing external webhook configurations "
+"will stop working until updated. Continue?"
+msgstr ""
+"سيؤدي هذا إلى تغيير رابط Webhook URL. ستتوقف إعدادات Webhook الخارجية "
+"الحالية عن العمل حتى يتم تحديثها. هل تريد المتابعة؟"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+msgid "Token Expiry"
+msgstr "انتهاء صلاحية الرمز"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+msgid "Token Refresh"
+msgstr "تحديث الرمز"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__token_refresh_in_progress_at
+msgid "Token Refresh In Progress At"
+msgstr "بدء تحديث الرمز في"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__token_refresh_lock
+msgid "Token Refresh Lock"
+msgstr "قفل تحديث الرمز"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__total_amount
+msgid "Total Amount"
+msgstr "المبلغ الإجمالي"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_external_order__activity_exception_decoration
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__activity_exception_decoration
+msgid "Type of the exception activity on record."
+msgstr "نوع نشاط الاستثناء في السجل."
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order_line__unit_price
+msgid "Unit Price"
+msgstr "سعر الوحدة"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_search
+msgid "Valid Signature"
+msgstr "توقيع صالح"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+msgid "Validate"
+msgstr "تحقق"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__warning_message
+msgid "Warning Message"
+msgstr "رسالة تحذير"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+msgid "Warnings will appear here."
+msgstr "ستظهر التحذيرات هنا."
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+msgid "Webhook"
+msgstr "Webhook"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_form
+msgid "Webhook Event"
+msgstr "حدث Webhook"
+
+#. module: ecommerce_connector_base
+#: model:ir.actions.act_window,name:ecommerce_connector_base.action_ecommerce_webhook_event
+#: model:ir.ui.menu,name:ecommerce_connector_base.menu_ecommerce_webhook_event
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_list
+msgid "Webhook Events"
+msgstr "أحداث Webhook"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_graph
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_webhook_event_pivot
+msgid "Webhook Events by Store and Status"
+msgstr "أحداث Webhook حسب المتجر والحالة"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__webhook_secret
+msgid "Webhook HMAC secret. Masked in the UI, but not database-encrypted."
+msgstr ""
+"الرمز السري لـ HMAC لـ Webhook. مخفي في واجهة المستخدم، لكنه غير مشفر في "
+"قاعدة البيانات."
+
+#. module: ecommerce_connector_base
+#: model:ir.actions.act_window,name:ecommerce_connector_base.action_ecommerce_webhook_event_report
+#: model:ir.ui.menu,name:ecommerce_connector_base.menu_ecommerce_webhook_event_report
+msgid "Webhook Health"
+msgstr "صحة Webhook"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__webhook_secret
+msgid "Webhook Secret"
+msgstr "الرمز السري لـ Webhook"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+msgid "Webhook Status"
+msgstr "حالة Webhook"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__webhook_token
+msgid "Webhook Token"
+msgstr "رمز Webhook"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_store_form
+msgid "Webhook URL"
+msgstr "رابط Webhook URL"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__webhook_url
+msgid "Webhook Url"
+msgstr "رابط Webhook Url"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_external_order__website_message_ids
+#: model:ir.model.fields,field_description:ecommerce_connector_base.field_ecommerce_store__website_message_ids
+msgid "Website Messages"
+msgstr "رسائل الموقع الإلكتروني"
+
+#. module: ecommerce_connector_base
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_external_order__website_message_ids
+#: model:ir.model.fields,help:ecommerce_connector_base.field_ecommerce_store__website_message_ids
+msgid "Website communication history"
+msgstr "سجل اتصالات الموقع الإلكتروني"
+
+#. module: ecommerce_connector_base
+#: model_terms:ir.ui.view,arch_db:ecommerce_connector_base.view_ecommerce_external_order_form
+msgid ""
+"⚠ <strong>Currency Mismatch:</strong> Order currency differs from company "
+"currency. Verify pricing before importing."
+msgstr ""
+"⚠ <strong>عدم تطابق العملة:</strong> عملة الطلب تختلف عن عملة الشركة. يرجى "
+"التحقق من الأسعار قبل الاستيراد."

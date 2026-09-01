@@ -1,6 +1,6 @@
 {
     "name": "E-commerce Salla Connector",
-    "version": "18.0.2.0.0",
+    "version": "18.0.2.2.0",
     "category": "Sales",
     "summary": "Salla integration layer for E-commerce Connector Base",
     "depends": [

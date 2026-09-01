@@ -27,7 +27,7 @@ It is a portfolio MVP, not a certified production marketplace connector.
 
 Snapshot: **2026-08-23**, based on the current <code>develop</code> and <code>main</code> branches, source, tests, and Git history.
 
-- UC-00 through UC-23 (including UC-21) are implemented and merged into `develop` and `main`.
+- UC-00 through UC-25 (including UC-21 release polish, UC-24 order cancellation, and UC-25 Arabic localization) are implemented and verified.
 - GitHub Actions CI (`static-checks` and `odoo-tests` workflows) is active and passing.
 - Live Salla production readiness and deployment topology need investigation.
 

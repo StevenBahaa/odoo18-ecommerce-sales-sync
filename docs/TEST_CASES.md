@@ -373,3 +373,74 @@ correctly matched the demo store's `store_identifier`.
 
 ### TC-UC20-6 — Imported Demo Order Has a Real Linked Sale Order
 The successful demo order actually produces a `sale.order` record, not just a state change.
+
+## UC-24 — Order Cancellation
+
+### TC-UC24-1 — Known Non-Imported Order Cancelled
+Send a valid `order.cancelled` payload for a captured external order. Verify the external order transitions to `cancelled`, watermark fields are set, raw payload is preserved, and the webhook event is marked `processed`.
+
+### TC-UC24-2 — Unknown Order Parks as Pending Review
+Send `order.cancelled` for an unknown `external_order_id`. Verify the webhook event is parked in `pending_review` with an explanatory error message and no external order is created.
+
+### TC-UC24-3 — Stale Cancellation Parked
+Send `order.cancelled` with a timestamp older than the staged order's existing watermark. Verify the event is parked as `pending_review` and the external order remains unchanged.
+
+### TC-UC24-4 — Exact Duplicate Cancellation
+Send an identical cancellation payload with the same timestamp and event ID as the applied watermark. Verify the event is marked `duplicate` with no further mutations.
+
+### TC-UC24-5 — Same-Timestamp Ambiguous Cancellation
+Send a cancellation payload with the same timestamp as the watermark but a different/missing event ID. Verify the event is parked in `pending_review`.
+
+### TC-UC24-6 — Missing Timestamp Parks
+Send `order.cancelled` without any valid datetime keys. Verify the event is parked in `pending_review`.
+
+### TC-UC24-7 — Malformed Data Object Parks
+Send `order.cancelled` where `data` is not a dictionary. Verify the event is parked in `pending_review` without crashing.
+
+### TC-UC24-8 — Imported Order Under Stage-Only Policy
+Send `order.cancelled` for an already imported order on a store with default `cancellation_policy = 'stage_only'`. Verify the external order is marked `cancelled` while the linked `sale.order` remains in `draft` state untouched.
+
+### TC-UC24-9 — Imported Order Under Cancel-Sale-Order Policy
+Send `order.cancelled` for an imported order on a store with `cancellation_policy = 'cancel_linked_sale_order'`. Verify both the external order is marked `cancelled` and the linked quotation is cancelled (`so.state == 'cancel'`).
+
+### TC-UC24-10 — Uncancellable Sale Order Fails Atomically
+On a store with `cancel_linked_sale_order`, send cancellation for an order whose linked `sale.order` is confirmed (`state == 'sale'`). Verify the event parks in `pending_review` and the external order remains `imported` (atomicity preserved).
+
+### TC-UC24-11 — Manual Cancel Requires Connector Manager
+Attempt `action_cancel_external_order` as a user without Connector Manager group. Verify an `AccessError` is raised.
+
+### TC-UC24-12 — Manual Cancel Success and State Guards
+As Connector Manager, call `action_cancel_external_order` on a captured order. Verify it transitions to `cancelled` and errors are cleared. Verify re-cancelling or cancelling an imported order raises `UserError`.
+
+### TC-UC24-13 — Retry Blocked After Cancellation
+Attempt `action_retry_import` on a cancelled order. Verify it is blocked with `UserError`.
+
+### TC-UC24-14 — Redelivery After Cancellation Is Duplicate
+Re-deliver the identical cancellation payload. Verify the second event is marked `duplicate` and staging remains `cancelled`.
+
+## UC-25 — Arabic (AR) Localization & RTL Support
+
+### TC-UC25-1 — Arabic Language Activation & PO Loading
+Activate Arabic (`ar_001`) in `res.lang`, upgrade `ecommerce_connector_base` and `ecommerce_salla_connector`. Verify no translation syntax or loading errors occur.
+
+### TC-UC25-2 — Main App and Menu Localization
+Switch user language to Arabic (`ar_001`). Verify the top-level app title displays `موصل التجارة الإلكترونية`, and all submenus under `العمليات` (Operations), `التقارير` (Reporting), and `التهيئة` (Configuration) are rendered in Modern Standard Arabic.
+
+### TC-UC25-3 — External Order Staging View in Arabic
+Open an external order record. Verify:
+- Status bar stages display: `مسودة`, `مستلم`, `قيد الربط`, `جاهز`, `مستورد`, `ملغى`.
+- Action buttons display: `تحقق`, `إنشاء أمر بيع`, `إعادة محاولة الاستيراد`, `تعيين كملغى`.
+- Field labels and tab headers (`البنود`, `القيم التجارية`, `سجل مراجعة إعادة المحاولة`, `الأخطاء / التحذيرات`) are translated.
+
+### TC-UC25-4 — Store Configuration & Policies in Arabic
+Open a Store record. Verify tabs (`بيانات الاعتماد`, `السياسات`, `أمان التكامل`), selection values for policies (`سياسة الإلغاء`, `استراتيجية الخصم`, `سياسة مزامنة المخزون`), and buttons are translated into Arabic.
+
+### TC-UC25-5 — Salla Mock Payload Lab in Arabic
+Open the Salla Mock Payload Lab wizard. Verify the wizard title (`مختبر البيانات التجريبية`), template dropdown labels, and action buttons (`إنشاء حدث Webhook`, `إلغاء`) are in Arabic.
+
+### TC-UC25-6 — Full Right-to-Left (RTL) Layout Verification
+Verify that when Arabic is active and `rtlcss` is available:
+- The entire page direction is RTL.
+- Top app navigation and brand switcher align to the right.
+- Form sheet aligns to the right and chatter aligns to the left.
+- Control panel pagination and search bar are mirrored properly.

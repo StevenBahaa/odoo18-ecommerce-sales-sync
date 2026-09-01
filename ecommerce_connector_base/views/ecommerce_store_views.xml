@@ -114,6 +114,7 @@
                                     <field name="order_import_policy"/>
                                     <field name="discount_strategy"/>
                                     <field name="stock_sync_policy"/>
+                                    <field name="cancellation_policy"/>
                                 </group>
 
                                 <group string="Accounting">

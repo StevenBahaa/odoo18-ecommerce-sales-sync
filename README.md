@@ -57,6 +57,8 @@ Salla-specific layer containing:
 - Stock readiness gate before import (UC-18)
 - Reporting pivot/graph views: Orders by Store & Status, Webhook Health, Imported Sale Orders (UC-19)
 - Webhook retry status synchronization (UC-23); idempotent demo bootstrap data (UC-20)
+- Policy-driven order.cancelled handling: watermark-ordered staging cancellation with optional safe cancellation of linked draft sale orders (UC-24)
+- Arabic (AR) Localization: complete Arabic translation catalog with 100% string coverage, native RTL UI support, and aligned Modern Standard Arabic business terms (UC-25)
 
 ## Mandatory Mock Mode
 
@@ -92,7 +94,6 @@ Mock Mode demonstrates the full flow without paid/live Salla access. It is the g
 - Reverse-proxy rate limiting is recommended for production deployments.
 - The proportional discount-allocation strategy has allocation limitations.
 - UI password masking is not database encryption; secrets are access-restricted only.
-- `order.cancelled` webhooks are recorded but have no dedicated handling yet.
 
 ## Documentation map
 
