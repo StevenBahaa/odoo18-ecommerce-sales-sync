@@ -58,6 +58,7 @@ Salla-specific layer containing:
 - Reporting pivot/graph views: Orders by Store & Status, Webhook Health, Imported Sale Orders (UC-19)
 - Webhook retry status synchronization (UC-23); idempotent demo bootstrap data (UC-20)
 - Policy-driven order.cancelled handling: watermark-ordered staging cancellation with optional safe cancellation of linked draft sale orders (UC-24)
+- Arabic (AR) Localization: complete Arabic translation catalog with 100% string coverage, native RTL UI support, and aligned Modern Standard Arabic business terms (UC-25)
 
 ## Mandatory Mock Mode
 

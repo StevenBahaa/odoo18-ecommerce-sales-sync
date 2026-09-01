@@ -1,0 +1,413 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* ecommerce_salla_connector
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 18.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-25 14:15+0000\n"
+"PO-Revision-Date: 2026-08-25 14:15+0000\n"
+"Last-Translator: Steven Bahaa <stevenbahaa08@gmail.com>\n"
+"Language-Team: Arabic <ar@li.org>\n"
+"Language: ar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+
+#. module: ecommerce_salla_connector
+#: model_terms:ir.ui.view,arch_db:ecommerce_salla_connector.view_ecommerce_store_form_salla
+msgid "<strong>Attention Required:</strong>"
+msgstr "<strong>انتباه مطلوب:</strong>"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_store__oauth_credential_state__access_token_missing_expiry
+msgid "Access Token Missing Expiry"
+msgstr "رمز الوصول بدون تاريخ انتهاء"
+
+#. module: ecommerce_salla_connector
+#: model_terms:ir.ui.view,arch_db:ecommerce_salla_connector.view_ecommerce_mock_payload_wizard_form
+msgid "Cancel"
+msgstr "إلغاء"
+
+#. module: ecommerce_salla_connector
+#: model_terms:ir.ui.view,arch_db:ecommerce_salla_connector.view_ecommerce_mock_payload_wizard_form
+msgid "Create Webhook Event"
+msgstr "إنشاء حدث Webhook"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_mock_payload_wizard__created_event_id
+msgid "Created Webhook Event"
+msgstr "حدث Webhook المُنشأ"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_mock_payload_wizard__create_uid
+msgid "Created by"
+msgstr "أُنشئ بواسطة"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_mock_payload_wizard__create_date
+msgid "Created on"
+msgstr "تاريخ الإنشاء"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_store__oauth_credential_state
+msgid "Credential State"
+msgstr "حالة بيانات الاعتماد"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_store__oauth_credential_warning
+msgid "Credential Warning"
+msgstr "تحذير بيانات الاعتماد"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_mock_payload_wizard__payload_template__custom_json
+msgid "Custom JSON"
+msgstr "JSON مخصص"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_mock_payload_wizard__display_name
+msgid "Display Name"
+msgstr "الاسم المعروض"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model,name:ecommerce_salla_connector.model_ecommerce_external_order
+msgid "E-commerce External Order"
+msgstr "طلب خارجي للتجارة الإلكترونية"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model,name:ecommerce_salla_connector.model_ecommerce_mock_payload_wizard
+msgid "E-commerce Mock Payload Lab"
+msgstr "مختبر البيانات التجريبية للتجارة الإلكترونية"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model,name:ecommerce_salla_connector.model_ecommerce_store
+msgid "E-commerce Store"
+msgstr "متجر التجارة الإلكترونية"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model,name:ecommerce_salla_connector.model_ecommerce_webhook_event
+msgid "E-commerce Webhook Event"
+msgstr "حدث Webhook للتجارة الإلكترونية"
+
+#. module: ecommerce_salla_connector
+#: model_terms:ir.ui.view,arch_db:ecommerce_salla_connector.view_ecommerce_external_order_form_inherit_salla
+msgid "Enrich from Salla"
+msgstr "إثراء البيانات من Salla"
+
+#. module: ecommerce_salla_connector
+#: model_terms:ir.ui.view,arch_db:ecommerce_salla_connector.view_ecommerce_external_order_form_inherit_salla
+msgid "Enrichment Status"
+msgstr "حالة الإثراء"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,help:ecommerce_salla_connector.field_ecommerce_external_order__store_environment
+msgid "Environment in which the store operates."
+msgstr "البيئة التي يعمل فيها المتجر."
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_store__oauth_credential_state__access_token_expired
+msgid "Expired Access Token"
+msgstr "رمز الوصول منتهي الصلاحية"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_store__oauth_credential_state__refresh_token_expired
+msgid "Expired Refresh Token"
+msgstr "رمز التحديث منتهي الصلاحية"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_store__oauth_credential_state__refresh_token_expiring
+msgid "Expiring Refresh Token"
+msgstr "رمز التحديث قارب على الانتهاء"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_external_order__last_salla_enrichment_status__failed
+msgid "Failed"
+msgstr "فاشل"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_store__oauth_credential_state__healthy
+msgid "Healthy"
+msgstr "سليم"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_mock_payload_wizard__id
+msgid "ID"
+msgstr "المعرِّف"
+
+#. module: ecommerce_salla_connector
+#: model_terms:ir.ui.view,arch_db:ecommerce_salla_connector.view_ecommerce_external_order_form_inherit_salla
+msgid "Last Enrichment Error"
+msgstr "خطأ الإثراء الأخير"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_store__last_token_refresh_error
+msgid "Last Refresh Error"
+msgstr "آخر خطأ في تحديث الرمز"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_store__last_salla_api_call_at
+msgid "Last Salla API Call"
+msgstr "آخر استدعاء لـ Salla API"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_external_order__last_salla_enriched_at
+msgid "Last Salla Enriched At"
+msgstr "تاريخ آخر إثراء من Salla"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_external_order__last_salla_enriched_by_id
+msgid "Last Salla Enriched By"
+msgstr "آخر إثراء من Salla بواسطة"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_external_order__last_salla_enrichment_error
+msgid "Last Salla Enrichment Error"
+msgstr "آخر خطأ في إثراء Salla"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_external_order__last_salla_enrichment_status
+msgid "Last Salla Enrichment Status"
+msgstr "آخر حالة إثراء من Salla"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_mock_payload_wizard__write_uid
+msgid "Last Updated by"
+msgstr "آخر تعديل بواسطة"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_mock_payload_wizard__write_date
+msgid "Last Updated on"
+msgstr "تاريخ آخر تعديل"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_store__oauth_credential_state__access_token_missing
+msgid "Missing Access Token"
+msgstr "رمز الوصول مفقود"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_store__oauth_credential_state__refresh_token_missing
+msgid "Missing Refresh Token"
+msgstr "رمز التحديث مفقود"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_store__oauth_credential_state__mock
+msgid "Mock"
+msgstr "محاكاة"
+
+#. module: ecommerce_salla_connector
+#: model:ir.actions.act_window,name:ecommerce_salla_connector.action_ecommerce_mock_payload_lab
+#: model:ir.ui.menu,name:ecommerce_salla_connector.menu_ecommerce_mock_payload_lab
+#: model_terms:ir.ui.view,arch_db:ecommerce_salla_connector.view_ecommerce_mock_payload_wizard_form
+msgid "Mock Payload Lab"
+msgstr "مختبر البيانات التجريبية"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,help:ecommerce_salla_connector.field_ecommerce_mock_payload_wizard__store_id
+msgid "Mock Payload Lab only runs against stores in Mock environment."
+msgstr "يعمل مختبر البيانات التجريبية فقط مع المتاجر في بيئة المحاكاة."
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_store__oauth_credential_state__not_salla
+msgid "Not Applicable"
+msgstr "غير منطبق"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_mock_payload_wizard__payload_json
+#: model_terms:ir.ui.view,arch_db:ecommerce_salla_connector.view_ecommerce_mock_payload_wizard_form
+msgid "Payload JSON"
+msgstr "بيانات JSON"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_mock_payload_wizard__payload_template
+msgid "Payload Template"
+msgstr "نموذج البيانات"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_store__platform
+msgid "Platform"
+msgstr "المنصة"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_store__oauth_credential_state__reauthorization_required
+msgid "Reauthorization Required"
+msgstr "إعادة التفويض مطلوبة"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_store__oauth_credential_state__refresh_in_progress
+msgid "Refresh In Progress"
+msgstr "التحديث جارٍ"
+
+#. module: ecommerce_salla_connector
+#: model_terms:ir.ui.view,arch_db:ecommerce_salla_connector.view_ecommerce_store_form_salla
+msgid "Refresh Salla Token"
+msgstr "تحديث رمز Salla"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_store__oauth_credential_state__refresh_token_missing_expiry
+msgid "Refresh Token Missing Expiry"
+msgstr "رمز التحديث بدون تاريخ انتهاء"
+
+#. module: ecommerce_salla_connector
+#: model_terms:ir.ui.view,arch_db:ecommerce_salla_connector.view_ecommerce_mock_payload_wizard_form
+msgid "Reload Sample"
+msgstr "إعادة تحميل النموذج"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_store__token_refresh_requires_reauthorization
+msgid "Requires Reauthorization"
+msgstr "يتطلب إعادة تفويض"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_store__platform__salla
+#: model_terms:ir.ui.view,arch_db:ecommerce_salla_connector.view_ecommerce_store_form_salla
+#: model_terms:ir.ui.view,arch_db:ecommerce_salla_connector.view_ecommerce_store_search_salla
+msgid "Salla"
+msgstr "سلة"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_mock_payload_wizard__payload_template__salla_app_installed
+msgid "Salla - app.installed"
+msgstr "Salla - app.installed"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_mock_payload_wizard__payload_template__salla_app_store_authorize
+msgid "Salla - app.store.authorize"
+msgstr "Salla - app.store.authorize"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_mock_payload_wizard__payload_template__salla_order_cancelled
+msgid "Salla - order.cancelled"
+msgstr "Salla - order.cancelled"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_mock_payload_wizard__payload_template__salla_order_created
+msgid "Salla - order.created"
+msgstr "Salla - order.created"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_mock_payload_wizard__payload_template__salla_order_missing_sku
+msgid "Salla - order.created (Missing SKU)"
+msgstr "Salla - order.created (رمز SKU مفقود)"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_mock_payload_wizard__payload_template__salla_order_multicurrency_sar
+msgid "Salla - order.created (Multi-currency SAR)"
+msgstr "Salla - order.created (متعدد العملات - ريال سعودي)"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_mock_payload_wizard__payload_template__salla_order_created_same_customer_new_order
+msgid "Salla - order.created (TC-6)"
+msgstr "Salla - order.created (TC-6)"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_mock_payload_wizard__payload_template__salla_order_updated
+msgid "Salla - order.updated"
+msgstr "Salla - order.updated"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model,name:ecommerce_salla_connector.model_ecommerce_salla_client
+msgid "Salla API Client"
+msgstr "عميل واجهة Salla البرمجية"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_store__salla_api_rate_limit_limit
+msgid "Salla API Rate Limit"
+msgstr "حد معدل طلبات Salla API"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_store__salla_api_rate_limit_remaining
+msgid "Salla API Rate Remaining"
+msgstr "الطلبات المتبقية في حد المعدل لـ Salla API"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_store__salla_api_rate_limit_reset_at
+msgid "Salla API Rate Reset"
+msgstr "تاريخ إعادة تعيين حد معدل Salla API"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_store__salla_api_retry_after_at
+msgid "Salla API Retry After"
+msgstr "إعادة محاولة Salla API بعد"
+
+#. module: ecommerce_salla_connector
+#: model:ir.actions.server,name:ecommerce_salla_connector.ir_cron_check_salla_token_expiry_ir_actions_server
+msgid "Salla Connector: Check Token Expiry"
+msgstr "موصّل Salla: التحقق من انتهاء صلاحية الرمز"
+
+#. module: ecommerce_salla_connector
+#: model_terms:ir.ui.view,arch_db:ecommerce_salla_connector.view_ecommerce_external_order_form_inherit_salla
+msgid "Salla Enrichment"
+msgstr "إثراء Salla"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_external_order__salla_enrichment_count
+msgid "Salla Enrichment Count"
+msgstr "عدد عمليات إثراء Salla"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model,name:ecommerce_salla_connector.model_ecommerce_salla_mapper
+msgid "Salla Payload Mapper"
+msgstr "محوّل بيانات Salla"
+
+#. module: ecommerce_salla_connector
+#: model_terms:ir.ui.view,arch_db:ecommerce_salla_connector.view_ecommerce_store_form_salla
+msgid "Salla Quick Reference"
+msgstr "المرجع السريع لـ Salla"
+
+#. module: ecommerce_salla_connector
+#: model_terms:ir.ui.view,arch_db:ecommerce_salla_connector.view_ecommerce_store_form_salla
+msgid ""
+"Salla credentials, webhook secret, token values, rate limits, and "
+"integration user settings are managed from the main configuration tabs."
+msgstr ""
+"تُدار بيانات اعتماد Salla ومفتاح Webhook السري وقيم الرموز وحدود المعدل "
+"وإعدادات مستخدم التكامل من تبويبات الإعداد الرئيسية."
+
+#. module: ecommerce_salla_connector
+#: model_terms:ir.ui.view,arch_db:ecommerce_salla_connector.view_ecommerce_store_form_salla
+msgid ""
+"Salla uses a single-use refresh token that is invalidated immediately upon "
+"use. Ensure no other refresh is running. Continue?"
+msgstr ""
+"يستخدم Salla رمز تحديث للاستخدام مرة واحدة يُبطَل فور الاستخدام. "
+"تأكد من عدم وجود عملية تحديث أخرى جارية. هل تريد المتابعة؟"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_mock_payload_wizard__store_id
+#: model_terms:ir.ui.view,arch_db:ecommerce_salla_connector.view_ecommerce_mock_payload_wizard_form
+msgid "Store"
+msgstr "المتجر"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,field_description:ecommerce_salla_connector.field_ecommerce_external_order__store_environment
+msgid "Store Environment"
+msgstr "بيئة المتجر"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields.selection,name:ecommerce_salla_connector.selection__ecommerce_external_order__last_salla_enrichment_status__success
+msgid "Success"
+msgstr "ناجح"
+
+#. module: ecommerce_salla_connector
+#: model:ir.model.fields,help:ecommerce_salla_connector.field_ecommerce_store__platform
+msgid ""
+"Technical platform handled by this store. Salla will be added by the Salla "
+"connector module."
+msgstr ""
+"المنصة التقنية التي يديرها هذا المتجر. ستُضاف Salla بواسطة وحدة موصّل Salla."
+
+#. module: ecommerce_salla_connector
+#: model_terms:ir.ui.view,arch_db:ecommerce_salla_connector.view_ecommerce_external_order_form_inherit_salla
+msgid ""
+"This will fetch the latest order details directly from Salla API and update "
+"staged values. Proceed?"
+msgstr ""
+"سيجلب هذا الإجراء أحدث تفاصيل الطلب مباشرةً من Salla API "
+"ويُحدِّث القيم المؤقتة. هل تريد المتابعة؟"
+
+#. module: ecommerce_salla_connector
+#: model_terms:ir.ui.view,arch_db:ecommerce_salla_connector.view_ecommerce_store_form_salla
+msgid "Token Status"
+msgstr "حالة الرمز"

@@ -199,7 +199,7 @@ The Salla API client is strictly GET-only and manual. It enforces integration-ma
 
 OAuth authorization (UC-15), token refresh safety (UC-16), GET-only Salla API client and
 enrichment (UC-17), stock readiness gating (UC-18), reporting views (UC-19), demo
-bootstrap data (UC-20), and order cancellation handling (UC-24).
+bootstrap data (UC-20), order cancellation handling (UC-24), and Arabic localization (UC-25).
 
 ## Still deferred
 

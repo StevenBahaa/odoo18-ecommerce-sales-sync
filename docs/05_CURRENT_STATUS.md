@@ -32,8 +32,9 @@ Evidence: current <code>develop</code> branch, implementation, targeted tests, G
 | UC-22 | Salla Live Payload Compatibility and Status Normalization | Strict shared status normalizer (slug -> name string hierarchy), timezone-aware Salla datetime parsing, customer identity/mobile normalization, context-safe monetary parsing, nested product/variant ID and line amount mapping, strict malformed-line/quantity/float-boundary validation, and orders.read_write OAuth scope preflight support. |
 | UC-23 | Webhook retry status synchronization | Imported external orders now close their linked failed/pending-review order-created webhooks, preserve webhook error audit history, and allow idempotent repair from either retry entry point. |
 | UC-24 | Order cancellation handling | order.cancelled routing, watermark-ordered staging cancellation, policy-gated sale-order cancellation, manual manager cancel, sample payload + Mock Lab template, focused tests. |
+| UC-25 | Arabic (AR) Localization | Complete Arabic PO translations (100% string coverage) for both `ecommerce_connector_base` and `ecommerce_salla_connector`, natural RTL UI alignment, Arabic terminology alignment with standard Odoo accounting/sales conventions. |
 
-UC-24 order cancellation handling validated: all manual and automated checks passed; full regression suite (14 test classes across UC-12 through UC-24) passing.
+UC-25 Arabic localization validated: all PO files compiled with 100% translation coverage, loaded and verified in Odoo 18.0 with RTL support.
 
 ## Features in progress
 
