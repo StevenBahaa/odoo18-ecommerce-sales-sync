@@ -52,6 +52,13 @@ Use safe, redacted evidence. Do not paste credentials, raw authorization headers
 | Enrichment skipped as stale | Salla API snapshot `updated_at` is older than `last_external_update_at` | Staged order has already received newer webhook updates. No action needed; existing data is newer. |
 | Enrichment action denied | User lacks E-commerce Integration Manager group | Only users in `group_ecommerce_integration_manager` can trigger manual API calls. |
 
+## Localization & RTL issues
+
+| Symptom | Likely cause | Diagnose and resolve |
+| --- | --- | --- |
+| Arabic language selected but layout is LTR | `rtlcss` is not installed on the host system | Install `rtlcss` globally via `npm install -g rtlcss`, clear cached assets (`ir_attachment` records with URL `%/assets/%`), and hard-refresh browser (`Ctrl + F5`). |
+| New translations not appearing | Modules were not upgraded after adding or editing `.po` files | Upgrade `ecommerce_connector_base` and `ecommerce_salla_connector` (`-u` flag) to load new `.po` catalogs into the database. |
+
 
 ## Test failures
 

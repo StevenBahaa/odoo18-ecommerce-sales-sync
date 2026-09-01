@@ -41,3 +41,7 @@ This guide outlines the recommended portfolio screenshots for demonstrating the 
 ### 9. Credential Lifecycle & Audit Chatter
 - **Menu Path:** E-commerce Connector → Configuration → Stores
 - **Focus:** Bottom chatter of the store form showing automated audit log entries (OAuth token update, expiry warnings, rate-limit cooldown notifications).
+
+### 10. Arabic (RTL) Localized Interface (UC-25)
+- **Menu Path:** موصل التجارة الإلكترونية → العمليات → الطلبات الخارجية
+- **Focus:** User preferences set to Arabic (`ar_001`). Show the entire Right-to-Left (RTL) interface with translated Arabic menus, status bar (`مسودة` ➔ `مستلم` ➔ `جاهز` ➔ `مستورد`), action buttons (`تحقق`, `إنشاء أمر بيع`), and Arabic financial field labels.
